@@ -1,0 +1,29 @@
+<svg width="200" height="200" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background circle -->
+  <circle cx="100" cy="100" r="90" fill="#f0f9ff" />
+
+  <!-- Stethoscope forming a heart shape -->
+  <path d="M150,80 C150,40 100,40 100,70 C100,40 50,40 50,80 C50,120 100,150 100,150 C100,150 150,120 150,80"
+        stroke="#0284c7"
+        stroke-width="10"
+        fill="none" />
+
+  <!-- Medical cross -->
+  <path d="M100,90 L100,110 M90,100 L110,100"
+        stroke="#0284c7"
+        stroke-width="8"
+        stroke-linecap="round" />
+
+  <!-- Stethoscope's ear pieces -->
+  <path d="M65,65 C55,55 55,45 65,40"
+        stroke="#0284c7"
+        stroke-width="6"
+        fill="none" />
+  <path d="M135,65 C145,55 145,45 135,40"
+        stroke="#0284c7"
+        stroke-width="6"
+        fill="none" />
+
+  <!-- Stethoscope's tube end -->
+  <circle cx="100" cy="140" r="8" fill="#0284c7" />
+</svg>
