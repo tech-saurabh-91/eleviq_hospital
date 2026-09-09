@@ -13,6 +13,11 @@ const patientRegistrationSchema = new mongoose.Schema(
             default: "in_progress",
         },
 
+        patient: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "Patient",
+        },
+
         // Terms & Conditions
         terms: {
             termsId: {

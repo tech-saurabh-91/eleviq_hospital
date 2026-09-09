@@ -6,11 +6,16 @@ const login = async (req, res) => {
     try {
         const { identifier, password } = req.body;
 
+        const clientIp =
+            req.headers["x-forwarded-for"]?.split(",")[0]?.trim() ||
+            req.socket.remoteAddress ||
+            req.ip;
+
         const { account, accountType, token } = await loginUser(
             identifier,
             password,
             {
-                ipAddress: req.ip,
+                ipAddress: clientIp,
                 userAgent: req.get("user-agent"),
             }
         );

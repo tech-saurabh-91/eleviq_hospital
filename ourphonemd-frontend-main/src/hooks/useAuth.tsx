@@ -18,6 +18,7 @@ import { SignInFormValues, SignupFormValues } from "@/types/auth.type";
 import {
   PATIENT_AUTH_API,
   PATIENT_REGISTRATION_API,
+  PATIENT_INSURANCE_API,
 } from "@/helper/api";
 
 import { LoginResponse } from "@/types/User";
@@ -390,6 +391,7 @@ export const useAuth = () => {
     );
   };
 
+
   /*
    * =========================
    * VALIDATE CURRENT STEP
@@ -589,7 +591,7 @@ export const useAuth = () => {
           "Registration completed successfully!"
         );
 
-        router.push("/patient");
+        setShowInsuranceModal(true);
 
         return;
       }
@@ -618,8 +620,8 @@ export const useAuth = () => {
 
       toast.error(
         apiError?.message ||
-          error?.message ||
-          "Registration failed"
+        error?.message ||
+        "Registration failed"
       );
     } finally {
       setIsLoading(false);
@@ -721,7 +723,9 @@ export const useAuth = () => {
         return <Step5Verification />;
 
       case 6:
-        return <Step6Insurance />;
+        return (
+          <Step6Insurance registrationId={registrationId} />
+        );
 
       default:
         return <TermsAndConditions />;

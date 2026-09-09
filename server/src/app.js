@@ -14,6 +14,7 @@ const insuranceRoutes = require("./modules/insurance/insurance.routes");
 const locationRoutes = require("./modules/locations/location.routes");
 
 const app = express();
+app.set("trust proxy", 1);
 
 app.use(express.json());
 app.use(cookieParser());

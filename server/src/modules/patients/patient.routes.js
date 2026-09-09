@@ -9,6 +9,17 @@ const { uploadImage, deleteImage } = require("../../services/media.service");
 const validateImage = require("../../middleware/validate-image");
 const parseRegistrationForm = require("../../middleware/parse-registration-form");
 
+const validateInsuranceImages =
+    require("../../middleware/validate-insurance-images");
+
+const {
+    createRegistrationInsuranceSchema,
+} = require("./patient-registration-insurance.validation");
+
+const {
+    createRegistrationInsurance,
+} = require("./patient-registration-insurance.controller");
+
 const {
     verifyRegistrationOtpSchema,
     createRegistrationSessionSchema,
@@ -141,6 +152,29 @@ router.post(
     "/registration/resend-otp",
     validate(resendRegistrationOtpSchema),
     resendRegistrationOtp
+);
+
+router.post(
+    "/registration/:registrationId/insurance",
+
+    upload.fields([
+        {
+            name: "frontCardImage",
+            maxCount: 1,
+        },
+        {
+            name: "backCardImage",
+            maxCount: 1,
+        },
+    ]),
+
+    validateInsuranceImages,
+
+    validate(
+        createRegistrationInsuranceSchema
+    ),
+
+    createRegistrationInsurance
 );
 
 router.get(

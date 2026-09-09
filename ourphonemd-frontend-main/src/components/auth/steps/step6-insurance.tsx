@@ -1,6 +1,7 @@
 "use client";
 
 import { useFormContext } from "react-hook-form";
+import { PATIENT_REGISTRATION_API } from "@/helper/api";
 import { FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -9,17 +10,98 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useState } from "react";
 import { CheckCircle2 } from "lucide-react";
 
-export function Step6Insurance() {
+export function Step6Insurance({
+  registrationId,
+}: {
+  registrationId: string | null;
+}) {
   // Try to get the form context, but handle the case when it's not available
   const formContext = useFormContext();
   const control = formContext?.control;
   const [isSubmitted, setIsSubmitted] = useState(false);
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    formContext.handleSubmit((data) => {
-      console.log('Form data:', data);
-      setIsSubmitted(true);
+
+    formContext.handleSubmit(async (data) => {
+      try {
+        const formData = new FormData();
+
+        formData.append("insuranceType", data.insuranceType);
+        formData.append("insuranceProvider", data.insuranceProvider);
+        formData.append("insuranceId", data.insuranceId);
+
+        formData.append(
+          "policyNumber",
+          data.policyNumber || ""
+        );
+        formData.append(
+          "groupNumber",
+          data.groupNumber || ""
+        );
+
+        formData.append(
+          "ediPayer",
+          data.ediPayer || ""
+        );
+
+        formData.append(
+          "coverageType",
+          data.coverageType
+        );
+
+        formData.append(
+          "effectiveDate",
+          data.effectiveDate
+        );
+
+        formData.append(
+          "isPrimary",
+          "true"
+        );
+
+        if (data.frontCardImage instanceof File) {
+          formData.append(
+            "frontCardImage",
+            data.frontCardImage
+          );
+        }
+
+        if (data.backCardImage instanceof File) {
+          formData.append(
+            "backCardImage",
+            data.backCardImage
+          );
+        }
+        const response = await fetch(
+          `${PATIENT_REGISTRATION_API.SESSION}/${registrationId}/insurance`,
+          {
+            method: "POST",
+            credentials: "include",
+            body: formData,
+          }
+        );
+
+        const result = await response.json();
+
+        if (!response.ok) {
+          throw new Error(
+            result.message || "Failed to save insurance"
+          );
+        }
+
+        console.log("Insurance saved:", result);
+
+        setIsSubmitted(true);
+      } catch (error) {
+        console.error("Insurance submission failed:", error);
+
+        alert(
+          error instanceof Error
+            ? error.message
+            : "Failed to save insurance"
+        );
+      }
     })(e);
   }
 
@@ -109,13 +191,13 @@ export function Step6Insurance() {
           />
           <FormField
             control={control}
-            name="frontCard"
+            name="frontCardImage"
             render={({ field: { onChange, ...field } }) => (
               <FormItem>
                 <FormLabel>Upload Front Card</FormLabel>
                 <FormControl>
-                  <Input 
-                    type="file" 
+                  <Input
+                    type="file"
                     accept="image/*"
                     onChange={(e) => {
                       const file = e.target.files?.[0];
@@ -130,13 +212,13 @@ export function Step6Insurance() {
           />
           <FormField
             control={control}
-            name="backCard"
+            name="backCardImage"
             render={({ field: { onChange, ...field } }) => (
               <FormItem>
                 <FormLabel>Upload Back Card</FormLabel>
                 <FormControl>
-                  <Input 
-                    type="file" 
+                  <Input
+                    type="file"
                     accept="image/*"
                     onChange={(e) => {
                       const file = e.target.files?.[0];
@@ -208,9 +290,9 @@ export function Step6Insurance() {
               <FormItem>
                 <FormLabel>Subscriber SSN</FormLabel>
                 <FormControl>
-                  <Input 
+                  <Input
                     type="text"
-                    placeholder="Enter subscriber SSN" 
+                    placeholder="Enter subscriber SSN"
                     {...field}
                     value={field.value || ''}
                   />

@@ -8,6 +8,7 @@ const PatientRegistrationOtp = require("./patient-registration-otp.model");
 
 const Role = require("../roles/role.model");
 const Patient = require("./patient.model");
+const Insurance = require("../insurance/insurance.model");
 const User = require("../users/user.model");
 
 const {
@@ -748,6 +749,8 @@ const verifyRegistrationOtp = async (
                 createdPatient =
                     patients[0];
 
+                registration.patient = createdPatient._id;
+
                 registration.verification.emailVerified =
                     true;
 
@@ -805,6 +808,161 @@ const verifyRegistrationOtp = async (
     }
 };
 
+const createRegistrationInsurance = async (
+    registrationId,
+    insuranceData
+) => {
+
+    const registration =
+        await PatientRegistration.findById(
+            registrationId
+        );
+
+    if (!registration) {
+        throw new Error(
+            "Registration session not found"
+        );
+    }
+
+    if (
+        registration.registrationStatus !==
+        "completed"
+    ) {
+        throw new Error(
+            "Registration must be completed before adding insurance"
+        );
+    }
+
+    if (
+        !registration.verification.emailVerified
+    ) {
+        throw new Error(
+            "Email verification is required before adding insurance"
+        );
+    }
+
+    if (!registration.patient) {
+        throw new Error(
+            "Patient account was not found for this registration"
+        );
+    }
+
+    const patient =
+        await Patient.findById(
+            registration.patient
+        );
+
+    if (!patient) {
+        throw new Error(
+            "Patient not found"
+        );
+    }
+
+    const {
+        insuranceType,
+        insuranceProvider,
+        insuranceId,
+        policyNumber,
+        groupNumber,
+        ediPayer,
+        coverageType,
+        effectiveDate,
+        isPrimary,
+        frontCardImage,
+        backCardImage,
+    } = insuranceData;
+
+    if (
+        new Date(effectiveDate) >
+        new Date()
+    ) {
+        throw new Error(
+            "Insurance effective date cannot be in the future"
+        );
+    }
+
+    if (isPrimary) {
+        await Insurance.updateMany(
+            {
+                patient: patient._id,
+                isPrimary: true,
+            },
+            {
+                $set: {
+                    isPrimary: false,
+                },
+            }
+        );
+    }
+
+    const insurance =
+        await Insurance.create({
+            patient: patient._id,
+
+            insuranceType,
+
+            insuranceProvider,
+
+            insuranceId,
+
+            policyNumber,
+
+            groupNumber,
+
+            ediPayer,
+
+            coverageType,
+
+            effectiveDate:
+                new Date(effectiveDate),
+
+            isPrimary,
+
+            frontCardImage,
+
+            backCardImage,
+        });
+
+    return {
+        insuranceId: insurance._id,
+
+        patientId: patient.patientId,
+
+        insuranceType:
+            insurance.insuranceType,
+
+        insuranceProvider:
+            insurance.insuranceProvider,
+
+        insuranceIdNumber:
+            insurance.insuranceId,
+
+        policyNumber:
+            insurance.policyNumber,
+
+        groupNumber:
+            insurance.groupNumber,
+
+        ediPayer:
+            insurance.ediPayer,
+
+        coverageType:
+            insurance.coverageType,
+
+        effectiveDate:
+            insurance.effectiveDate,
+
+        isPrimary:
+            insurance.isPrimary,
+
+        frontCardImage:
+            insurance.frontCardImage,
+
+        backCardImage:
+            insurance.backCardImage,
+    };
+};
+
 module.exports = {
     createRegistrationSession,
     completePrerequisites,
@@ -813,4 +971,5 @@ module.exports = {
     completeVerificationMethod,
     verifyRegistrationOtp,
     resendRegistrationOtp,
+    createRegistrationInsurance,
 };

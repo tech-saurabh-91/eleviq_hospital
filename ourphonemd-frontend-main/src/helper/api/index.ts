@@ -23,6 +23,11 @@ export const PATIENT_REGISTRATION_API = {
   RESEND_OTP: `${BASE_URL}/patients/registration/resend-otp`,
 };
 
+export const PATIENT_INSURANCE_API = {
+  CREATE: `${BASE_URL}/insurance`,
+  GET: `${BASE_URL}/insurance`,
+};
+
 export const PATIENT_APPOINTMENT_API = {
   CREATE: `${BASE_URL}/appointments/create`,
   GET_ALL: `${BASE_URL}/patient/appointments`,

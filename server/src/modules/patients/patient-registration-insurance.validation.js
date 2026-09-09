@@ -1,6 +1,6 @@
 const { z } = require("zod");
 
-const createInsuranceSchema = z.object({
+const createRegistrationInsuranceSchema = z.object({
 
     insuranceType: z
         .string()
@@ -63,5 +63,5 @@ const createInsuranceSchema = z.object({
 });
 
 module.exports = {
-    createInsuranceSchema,
+    createRegistrationInsuranceSchema,
 };

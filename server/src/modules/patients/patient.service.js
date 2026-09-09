@@ -64,11 +64,11 @@ const startRegistration = async (registrationData) => {
         status: "active",
     });
 
-    if(!activeTerms){
+    if (!activeTerms) {
         throw new Error("You must accept the currently active Terms & Conditions");
     }
 
-    if(!termsAccepted){
+    if (!termsAccepted) {
         throw new Error("You must accept the Terms & Conditions");
     }
 
@@ -159,7 +159,7 @@ const startRegistration = async (registrationData) => {
             termsVersion: activeTerms.version,
             termsAccepted: true,
             termsAcceptedAt,
-            
+
             email: email.toLowerCase(),
             password: undefined,
             passwordHash,
@@ -351,7 +351,23 @@ const getMyProfile = async (patientId) => {
         throw new Error("Patient profile not found");
     }
 
-    return patient;
+    return {
+        patientId: patient.patientId,
+        username: patient.username,
+        email: patient.email,
+        mobile: patient.mobile,
+        firstName: patient.firstName,
+        middleName: patient.middleName,
+        lastName: patient.lastName,
+        dateOfBirth: patient.dateOfBirth,
+        gender: patient.gender,
+        primaryPhone: patient.primaryPhone,
+        secondaryPhone: patient.secondaryPhone,
+        address: patient.address,
+        profilePicture: patient.profilePicture,
+        registrationType: patient.registrationType,
+        roles: patient.roles?.map((role) => role.name) || [],
+    };
 };
 
 module.exports = {
