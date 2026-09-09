@@ -11,14 +11,20 @@ const parseRegistrationForm = require("../../middleware/parse-registration-form"
 
 const validateInsuranceImages =
     require("../../middleware/validate-insurance-images");
-
 const {
     createRegistrationInsuranceSchema,
 } = require("./patient-registration-insurance.validation");
-
 const {
     createRegistrationInsurance,
 } = require("./patient-registration-insurance.controller");
+
+const {
+    updateMyProfileSchema,
+} = require("./profile/patient-profile.validation");
+const {
+    requestEmailChangeSchema,
+    verifyEmailChangeSchema,
+} = require("./profile/patient-email-change.validation");
 
 const {
     verifyRegistrationOtpSchema,
@@ -32,6 +38,10 @@ const {
 
 const {
     getMyProfile,
+    updateMyProfile,
+    requestEmailChange,
+    verifyEmailChange,
+    
     createRegistrationSession,
     completePrerequisites,
     completeAgeVerification,
@@ -39,6 +49,7 @@ const {
     completeVerificationMethod,
     verifyRegistrationOtp,
     resendRegistrationOtp,
+
 } = require("./patient.controller");
 
 const router = express.Router();
@@ -182,6 +193,30 @@ router.get(
     authenticate,
     authorize("patient.self.read"),
     getMyProfile
+);
+
+router.patch(
+    "/me",
+    authenticate,
+    authorize("patient.self.update"),
+    validate(updateMyProfileSchema),
+    updateMyProfile
+);
+
+router.post(
+    "/me/email-change/request",
+    authenticate,
+    authorize("patient.self.update"),
+    validate(requestEmailChangeSchema),
+    requestEmailChange
+);
+
+router.post(
+    "/me/email-change/verify",
+    authenticate,
+    authorize("patient.self.update"),
+    validate(verifyEmailChangeSchema),
+    verifyEmailChange
 );
 
 module.exports = router;

@@ -1,5 +1,8 @@
-const bcrypt = require("bcryptjs");
+const bcrypt = require("bcrypt");
 const crypto = require("crypto");
+
+const PatientEmailChangeOtp = require("./profile/patient-email-change-otp.model");
+const { sendEmail } = require("../../services/email.service");
 
 const User = require("../users/user.model");
 const Role = require("../roles/role.model");
@@ -354,24 +357,218 @@ const getMyProfile = async (patientId) => {
     return {
         patientId: patient.patientId,
         username: patient.username,
-        email: patient.email,
-        mobile: patient.mobile,
+
         firstName: patient.firstName,
         middleName: patient.middleName,
         lastName: patient.lastName,
+
         dateOfBirth: patient.dateOfBirth,
         gender: patient.gender,
+
+        email: patient.email,
+        mobile: patient.mobile,
         primaryPhone: patient.primaryPhone,
         secondaryPhone: patient.secondaryPhone,
+
         address: patient.address,
+
+        bloodType: patient.bloodType,
+        allergies: patient.allergies,
+
         profilePicture: patient.profilePicture,
+
         registrationType: patient.registrationType,
+
+        memberSince: patient.createdAt,
+        lastUpdated: patient.updatedAt,
+
         roles: patient.roles?.map((role) => role.name) || [],
     };
+};
+
+const updateMyProfile = async (patientId, updateData) => {
+    const patient = await Patient.findById(patientId);
+
+    if (!patient) {
+        throw new Error("Patient profile not found");
+    }
+
+    const allowedFields = [
+        "firstName",
+        "middleName",
+        "lastName",
+        "dateOfBirth",
+        "gender",
+        "secondaryPhone",
+        "bloodType",
+        "allergies",
+    ];
+
+    for (const field of allowedFields) {
+        if (updateData[field] !== undefined) {
+            patient[field] = updateData[field];
+        }
+    }
+
+    if (updateData.address) {
+        patient.address = {
+            ...patient.address?.toObject?.(),
+            ...updateData.address,
+        };
+    }
+
+    await patient.save();
+
+    return getMyProfile(patientId);
+};
+
+const requestEmailChange = async (patientId, newEmail) => {
+    const patient = await Patient.findById(patientId);
+
+    if (!patient) {
+        throw new Error("Patient profile not found");
+    }
+
+    const normalizedEmail = newEmail.trim().toLowerCase();
+
+    if (normalizedEmail === patient.email.toLowerCase()) {
+        throw new Error("New email must be different from current email");
+    }
+
+    const existingPatient = await Patient.findOne({
+        email: normalizedEmail,
+        _id: { $ne: patientId },
+    });
+
+    if (existingPatient) {
+        throw new Error("Email is already registered");
+    }
+
+    const existingUser = await User.findOne({
+        email: normalizedEmail,
+    });
+
+    if (existingUser) {
+        throw new Error("Email is already registered");
+    }
+
+    const otp = crypto.randomInt(100000, 1000000).toString();
+    const otpHash = await bcrypt.hash(otp, 12);
+
+    const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
+
+    await PatientEmailChangeOtp.findOneAndUpdate(
+        { patient: patientId },
+        {
+            patient: patientId,
+            newEmail: normalizedEmail,
+            otpHash,
+            expiresAt,
+            attempts: 0,
+        },
+        {
+            upsert: true,
+            new: true,
+            setDefaultsOnInsert: true,
+        }
+    );
+
+    await sendEmail({
+        to: normalizedEmail,
+        subject: "Verify your new email address",
+        text: `Your email change verification code is ${otp}. This code expires in 10 minutes.`,
+        html: `
+            <p>Your email change verification code is:</p>
+            <h2>${otp}</h2>
+            <p>This code expires in 10 minutes.</p>
+        `,
+    });
+
+    return {
+        message: "Verification OTP sent to the new email address",
+        expiresIn: 600,
+    };
+};
+
+const verifyEmailChange = async (patientId, otp) => {
+    const challenge = await PatientEmailChangeOtp.findOne({
+        patient: patientId,
+    });
+
+    if (!challenge) {
+        throw new Error("Email change request not found or expired");
+    }
+
+    if (challenge.expiresAt < new Date()) {
+        await PatientEmailChangeOtp.deleteOne({
+            _id: challenge._id,
+        });
+
+        throw new Error("OTP has expired");
+    }
+
+    if (challenge.attempts >= 5) {
+        await PatientEmailChangeOtp.deleteOne({
+            _id: challenge._id,
+        });
+
+        throw new Error("Maximum OTP attempts exceeded");
+    }
+
+    const isValidOtp = await bcrypt.compare(
+        otp,
+        challenge.otpHash
+    );
+
+    if (!isValidOtp) {
+        challenge.attempts += 1;
+        await challenge.save();
+
+        throw new Error("Invalid OTP");
+    }
+
+    const normalizedEmail = challenge.newEmail;
+
+    const existingPatient = await Patient.findOne({
+        email: normalizedEmail,
+        _id: { $ne: patientId },
+    });
+
+    if (existingPatient) {
+        throw new Error("Email is already registered");
+    }
+
+    const existingUser = await User.findOne({
+        email: normalizedEmail,
+    });
+
+    if (existingUser) {
+        throw new Error("Email is already registered");
+    }
+
+    const patient = await Patient.findById(patientId);
+
+    if (!patient) {
+        throw new Error("Patient profile not found");
+    }
+
+    patient.email = normalizedEmail;
+    patient.emailVerified = true;
+
+    await patient.save();
+
+    await PatientEmailChangeOtp.deleteOne({
+        _id: challenge._id,
+    });
+
+    return getMyProfile(patientId);
 };
 
 module.exports = {
     startRegistration,
     verifyRegistrationOtp,
     getMyProfile,
+    updateMyProfile,
+    requestEmailChange,
+    verifyEmailChange,
 };

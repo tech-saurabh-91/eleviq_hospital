@@ -110,6 +110,27 @@ const patientSchema = new mongoose.Schema(
             trim: true,
         },
 
+        bloodType: {
+            type: String,
+            enum: [
+                "A+",
+                "A-",
+                "B+",
+                "B-",
+                "AB+",
+                "AB-",
+                "O+",
+                "O-",
+                "unknown",
+            ],
+            default: "unknown",
+        },
+
+        allergies: {
+            type: [String],
+            default: [],
+        },
+
         address: {
             street: {
                 type: String,

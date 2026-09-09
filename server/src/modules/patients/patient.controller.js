@@ -94,14 +94,14 @@ const saveAccountInformation = async (req, res) => {
             data: result,
         });
     } catch (error) {
-    console.error("FULL CLOUDINARY ERROR:");
-    console.dir(error, { depth: null });
+        console.error("FULL CLOUDINARY ERROR:");
+        console.dir(error, { depth: null });
 
-    return res.status(400).json({
-        success: false,
-        message: error.message,
-    });
-}
+        return res.status(400).json({
+            success: false,
+            message: error.message,
+        });
+    }
 };
 
 const completeVerificationMethod = async (req, res) => {
@@ -124,7 +124,7 @@ const completeVerificationMethod = async (req, res) => {
             message: error.message,
         });
     }
-}; 
+};
 
 const verifyRegistrationOtp = async (req, res) => {
     try {
@@ -209,6 +209,68 @@ const getMyProfile = async (req, res) => {
     }
 };
 
+const updateMyProfile = async (req, res) => {
+    try {
+        const patient = await patientService.updateMyProfile(
+            req.user._id,
+            req.body
+        );
+
+        return res.status(200).json({
+            success: true,
+            message: "Patient profile updated successfully",
+            data: patient,
+        });
+    } catch (error) {
+        return res.status(400).json({
+            success: false,
+            message: error.message,
+        });
+    }
+};
+
+const requestEmailChange = async (req, res) => {
+    try {
+        const result = await patientService.requestEmailChange(
+            req.user._id,
+            req.body.newEmail
+        );
+
+        return res.status(200).json({
+            success: true,
+            message: result.message,
+            data: {
+                expiresIn: result.expiresIn,
+            },
+        });
+    } catch (error) {
+        return res.status(400).json({
+            success: false,
+            message: error.message,
+        });
+    }
+};
+
+const verifyEmailChange = async (req, res) => {
+    try {
+        const patient = await patientService.verifyEmailChange(
+            req.user._id,
+            req.body.otp
+        );
+
+        return res.status(200).json({
+            success: true,
+            message: "Email changed successfully",
+            data: patient,
+        });
+    } catch (error) {
+        return res.status(400).json({
+            success: false,
+            message: error.message,
+        });
+    }
+};
+
 module.exports = {
     createRegistrationSession,
     completePrerequisites,
@@ -219,4 +281,8 @@ module.exports = {
     resendRegistrationOtp,
     startRegistration,
     getMyProfile,
+
+    updateMyProfile,
+    requestEmailChange,
+    verifyEmailChange,
 };
