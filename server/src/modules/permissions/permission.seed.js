@@ -141,6 +141,23 @@ const permissions = [
         description: "Update own patient profile picture",
     },
 
+    {
+        name: "patient.family.create",
+        description: "Add family members",
+    },
+    {
+        name: "patient.family.read",
+        description: "View family members",
+    },
+    {
+        name: "patient.family.update",
+        description: "Update family members",
+    },
+    {
+        name: "patient.family.delete",
+        description: "Remove family members",
+    },
+
     // Appointment
     {
         name: "appointment.create",

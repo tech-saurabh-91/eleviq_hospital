@@ -30,6 +30,7 @@ const createInsurance = async (req, res) => {
         let frontCardImage;
         let backCardImage;
 
+        // Upload front card
         if (req.files?.frontCardImage?.[0]) {
             frontCardImage = await uploadToCloudinary(
                 req.files.frontCardImage[0],
@@ -37,6 +38,7 @@ const createInsurance = async (req, res) => {
             );
         }
 
+        // Upload back card
         if (req.files?.backCardImage?.[0]) {
             backCardImage = await uploadToCloudinary(
                 req.files.backCardImage[0],
@@ -46,6 +48,7 @@ const createInsurance = async (req, res) => {
 
         const insuranceData = {
             ...req.body,
+
             frontCardImage,
             backCardImage,
         };
@@ -70,7 +73,9 @@ const createInsurance = async (req, res) => {
 
 const getMyInsurance = async (req, res) => {
     try {
-        const result = await getMyInsuranceService(req.user._id);
+        const result = await getMyInsuranceService(
+            req.user._id
+        );
 
         return res.status(200).json({
             success: true,

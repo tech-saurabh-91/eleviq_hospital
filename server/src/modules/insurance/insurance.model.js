@@ -2,10 +2,21 @@ const mongoose = require("mongoose");
 
 const insuranceSchema = new mongoose.Schema(
     {
+        // Patient account that owns/manages this insurance record
         patient: {
             type: mongoose.Schema.Types.ObjectId,
             ref: "Patient",
             required: true,
+            index: true,
+        },
+
+        // Null for patient's own insurance.
+        // Set for insurance covering a family member.
+        familyMember: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "FamilyMember",
+            default: null,
+            index: true,
         },
 
         insuranceType: {
@@ -53,9 +64,40 @@ const insuranceSchema = new mongoose.Schema(
             required: true,
         },
 
+        relationship: {
+            type: String,
+            required: true,
+            trim: true,
+        },
+
         isPrimary: {
             type: Boolean,
             default: false,
+        },
+
+        // Commercial insurance subscriber information
+        subscriberName: {
+            type: String,
+            trim: true,
+        },
+
+        subscriberCopay: {
+            type: String,
+            trim: true,
+        },
+
+        subscriberSsn: {
+            type: String,
+            trim: true,
+        },
+
+        subscriberDateOfBirth: {
+            type: Date,
+        },
+
+        subscriberAddress: {
+            type: String,
+            trim: true,
         },
 
         frontCardImage: {
@@ -73,9 +115,9 @@ const insuranceSchema = new mongoose.Schema(
     }
 );
 
-const Insurance = mongoose.model(
-    "Insurance",
-    insuranceSchema
-);
+insuranceSchema.index({
+    patient: 1,
+    familyMember: 1,
+});
 
-module.exports = Insurance;
+module.exports = mongoose.model("Insurance", insuranceSchema);

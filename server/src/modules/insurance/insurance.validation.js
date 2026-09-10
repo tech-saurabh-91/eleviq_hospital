@@ -42,6 +42,16 @@ const createInsuranceSchema = z.object({
         .trim()
         .min(1, "Effective date is required"),
 
+    relationship: z
+        .string()
+        .trim()
+        .min(1, "Relationship is required"),
+
+    familyMemberId: z
+        .string()
+        .trim()
+        .optional(),
+
     isPrimary: z.preprocess(
         (value) => {
             if (value === "true") return true;
@@ -50,6 +60,31 @@ const createInsuranceSchema = z.object({
         },
         z.boolean().default(false)
     ),
+
+    subscriberName: z
+        .string()
+        .trim()
+        .optional(),
+
+    subscriberCopay: z
+        .string()
+        .trim()
+        .optional(),
+
+    subscriberSsn: z
+        .string()
+        .trim()
+        .optional(),
+
+    subscriberDateOfBirth: z
+        .string()
+        .trim()
+        .optional(),
+
+    subscriberAddress: z
+        .string()
+        .trim()
+        .optional(),
 
     frontCardImage: z
         .string()

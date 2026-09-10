@@ -182,6 +182,11 @@ const rolePermissions = {
     "patient.self.update",
     "patient.self.profile.update",
 
+    "patient.family.create",
+    "patient.family.read",
+    "patient.family.update",
+    "patient.family.delete",
+
     "appointment.self.read",
     "appointment.self.create",
     "appointment.self.update",

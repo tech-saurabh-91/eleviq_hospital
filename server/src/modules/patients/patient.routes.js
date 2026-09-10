@@ -26,6 +26,8 @@ const {
     verifyEmailChangeSchema,
 } = require("./profile/patient-email-change.validation");
 
+const familyRoutes = require("./family/family.routes");
+
 const {
     verifyRegistrationOtpSchema,
     createRegistrationSessionSchema,
@@ -217,6 +219,11 @@ router.post(
     authorize("patient.self.update"),
     validate(verifyEmailChangeSchema),
     verifyEmailChange
+);
+
+router.use(
+    "/me/family-members",
+    familyRoutes
 );
 
 module.exports = router;
