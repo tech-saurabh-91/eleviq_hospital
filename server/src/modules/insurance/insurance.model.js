@@ -101,13 +101,25 @@ const insuranceSchema = new mongoose.Schema(
         },
 
         frontCardImage: {
-            type: String,
-            trim: true,
+            publicId: {
+                type: String,
+                trim: true,
+            },
+            url: {
+                type: String,
+                trim: true,
+            },
         },
 
         backCardImage: {
-            type: String,
-            trim: true,
+            publicId: {
+                type: String,
+                trim: true,
+            },
+            url: {
+                type: String,
+                trim: true,
+            },
         },
     },
     {

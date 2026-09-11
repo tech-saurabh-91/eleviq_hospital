@@ -4,6 +4,7 @@ const Insurance = require("./insurance.model");
 
 const createInsurance = async (patientId, insuranceData) => {
     const {
+        insuranceObjectId,
         insuranceType,
         insuranceProvider,
         insuranceId,
@@ -99,7 +100,8 @@ const createInsurance = async (patientId, insuranceData) => {
         );
     }
 
-    const insurance = await Insurance.create({
+    const insurance = new Insurance({
+        _id: insuranceObjectId,
         patient: patient._id,
 
         familyMember: familyMember
@@ -130,10 +132,12 @@ const createInsurance = async (patientId, insuranceData) => {
 
         subscriberAddress,
 
-        // Keep Cloudinary URLs
+        // Store Cloudinary image metadata
         frontCardImage,
         backCardImage,
     });
+
+    await insurance.save();
 
     return {
         insuranceId: insurance._id,
@@ -169,7 +173,6 @@ const createInsurance = async (patientId, insuranceData) => {
     };
 };
 
-
 const getMyInsurance = async (userId) => {
     const patient = await Patient.findById(userId);
 
@@ -193,8 +196,171 @@ const getMyInsurance = async (userId) => {
     return insuranceRecords;
 };
 
+const getInsuranceById = async (patientId, insuranceId) => {
+    const patient = await Patient.findById(patientId);
 
+    if (!patient) {
+        throw new Error("Patient not found");
+    }
+
+    const insurance = await Insurance.findOne({
+        _id: insuranceId,
+        patient: patient._id,
+    })
+        .populate(
+            "familyMember",
+            "firstName middleName lastName relationship"
+        )
+        .select("-subscriberSsn");
+
+    if (!insurance) {
+        throw new Error("Insurance not found");
+    }
+
+    return insurance;
+};
+
+const updateInsurance = async (
+    patientId,
+    insuranceId,
+    updateData,
+    uploadedImages
+) => {
+    const patient = await Patient.findById(patientId);
+
+    if (!patient) {
+        throw new Error("Patient not found");
+    }
+
+    const insurance = await Insurance.findOne({
+        _id: insuranceId,
+        patient: patient._id,
+    });
+
+    if (!insurance) {
+        throw new Error("Insurance not found");
+    }
+
+    if (
+        updateData.effectiveDate &&
+        new Date(updateData.effectiveDate) > new Date()
+    ) {
+        throw new Error(
+            "Insurance effective date cannot be in the future"
+        );
+    }
+
+    let familyMember = null;
+
+    if (updateData.familyMemberId) {
+        familyMember = await FamilyMember.findOne({
+            _id: updateData.familyMemberId,
+            patient: patient._id,
+            status: "active",
+        });
+
+        if (!familyMember) {
+            throw new Error("Family member not found");
+        }
+
+        insurance.familyMember = familyMember._id;
+    }
+
+    const allowedFields = [
+        "insuranceType",
+        "insuranceProvider",
+        "insuranceId",
+        "policyNumber",
+        "groupNumber",
+        "ediPayer",
+        "coverageType",
+        "relationship",
+        "subscriberName",
+        "subscriberCopay",
+        "subscriberSsn",
+        "subscriberAddress",
+    ];
+
+    for (const field of allowedFields) {
+        if (updateData[field] !== undefined) {
+            insurance[field] = updateData[field];
+        }
+    }
+
+    if (updateData.effectiveDate) {
+        insurance.effectiveDate = new Date(
+            updateData.effectiveDate
+        );
+    }
+
+    if (updateData.isPrimary !== undefined) {
+        if (updateData.isPrimary) {
+            await Insurance.updateMany(
+                {
+                    patient: patient._id,
+                    familyMember: insurance.familyMember,
+                    _id: { $ne: insurance._id },
+                    isPrimary: true,
+                },
+                {
+                    $set: { isPrimary: false },
+                }
+            );
+        }
+
+        insurance.isPrimary = updateData.isPrimary;
+    }
+
+    if (uploadedImages?.frontCardImage) {
+        insurance.frontCardImage =
+            uploadedImages.frontCardImage;
+    }
+
+    if (uploadedImages?.backCardImage) {
+        insurance.backCardImage =
+            uploadedImages.backCardImage;
+    }
+
+    await insurance.save();
+
+    return insurance;
+};
+
+const deleteInsurance = async (patientId, insuranceId) => {
+    const patient = await Patient.findById(patientId);
+
+    if (!patient) {
+        throw new Error("Patient not found");
+    }
+
+    const insurance = await Insurance.findOne({
+        _id: insuranceId,
+        patient: patient._id,
+    });
+
+    if (!insurance) {
+        throw new Error("Insurance not found");
+    }
+
+    const deletedImages = {
+        frontCardImage: insurance.frontCardImage,
+        backCardImage: insurance.backCardImage,
+    };
+
+    await Insurance.deleteOne({
+        _id: insurance._id,
+        patient: patient._id,
+    });
+
+    return {
+        insuranceId: insurance._id,
+        deletedImages,
+    };
+};
 module.exports = {
     createInsurance,
     getMyInsurance,
+    getInsuranceById,
+    updateInsurance,
+    deleteInsurance,
 };
