@@ -8,12 +8,12 @@ const Role = require("../roles/role.model");
 
 dotenv.config();
 
-const users= [
+const users = [
     {
-        username:"superadmin",
+        username: "superadmin",
         mobile: "9999999991",
         password: process.env.SEED_SUPERADMIN_PASSWORD,
-        role:"super-admin",
+        role: "super-admin",
     },
     {
         username: "hospitaladmin",
@@ -72,6 +72,7 @@ const seedUsers = async () => {
                         mobile: userData.mobile,
                         passwordHash,
                         roles: [role._id],
+                        status: "active",
                     },
                 },
                 {

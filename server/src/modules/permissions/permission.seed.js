@@ -171,6 +171,16 @@ const permissions = [
         name: "appointment.update",
         description: "Update appointments",
     },
+
+    {
+        name: "appointment.verify",
+        description: "Verify appointments",
+    },
+    {
+        name: "appointment.confirm",
+        description: "Confirm appointments",
+    },
+    
     {
         name: "appointment.self.read",
         description: "View own appointments",
@@ -182,6 +192,16 @@ const permissions = [
     {
         name: "appointment.self.update",
         description: "Update own appointments",
+    },
+
+    {
+        name: "appointment.settings.read",
+        description: "View appointment settings",
+    },
+
+    {
+        name: "appointment.settings.update",
+        description: "Update appointment settings",
     },
 
     // Clinical

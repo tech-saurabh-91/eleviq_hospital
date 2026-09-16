@@ -54,6 +54,12 @@ const rolePermissions = {
     "appointment.read",
     "appointment.update",
 
+    "appointment.verify",
+    "appointment.confirm",
+
+    "appointment.settings.read",
+    "appointment.settings.update",
+
     "clinical.create",
     "clinical.read",
     "clinical.update",
@@ -102,6 +108,9 @@ const rolePermissions = {
     "appointment.create",
     "appointment.read",
     "appointment.update",
+
+    "appointment.verify",
+    "appointment.confirm",
 
     "billing.read",
   ],

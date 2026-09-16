@@ -1,6 +1,7 @@
 const express = require("express");
 const cookieParser = require("cookie-parser");
 
+const errorHandler = require("./middleware/error-handler");
 const authRoutes = require("./modules/auth/auth.routes");
 const companyRoutes = require("./modules/companies/company.routes");
 const patientRoutes = require("./modules/patients/patient.routes");
@@ -12,6 +13,7 @@ const termsRoutes = require("./modules/terms/terms.routes");
 const insuranceRoutes = require("./modules/insurance/insurance.routes");
 
 const locationRoutes = require("./modules/locations/location.routes");
+const appointmentRoutes = require("./modules/appointments/appointment.routes");
 
 const app = express();
 app.set("trust proxy", 1);
@@ -70,6 +72,7 @@ app.use("/api/terms", termsRoutes);
 app.use("/api/patients", patientRoutes);
 app.use("/api/insurance", insuranceRoutes);
 app.use("/api/locations", locationRoutes);
+app.use("/api/appointments", appointmentRoutes);
 
 // ==========================================
 // ADMIN DASHBOARD
@@ -120,15 +123,6 @@ app.get("/api/doctors", (req, res) => {
 // APPOINTMENTS
 // ==========================================
 
-app.get("/api/appointments", (req, res) => {
-    const appointments = [
-        { id: 1, patient: "Rahul Sharma", doctor: "Dr. Anjali Mehta", department: "Cardiology", time: "10:00 AM", status: "Confirmed" },
-        { id: 2, patient: "Priya Singh", doctor: "Dr. Rajesh Verma", department: "Neurology", time: "11:30 AM", status: "Waiting" },
-        { id: 3, patient: "Amit Kumar", doctor: "Dr. Anjali Mehta", department: "Cardiology", time: "02:00 PM", status: "Confirmed" },
-    ];
-    res.json({ success: true, count: appointments.length, data: appointments });
-});
-
 // ==========================================
 // BEDS
 // ==========================================
@@ -144,5 +138,9 @@ app.get("/api/beds", (req, res) => {
     };
     res.json({ success: true, data: beds });
 });
+
+// Global error handler
+app.use(errorHandler);
+
 
 module.exports = app;
