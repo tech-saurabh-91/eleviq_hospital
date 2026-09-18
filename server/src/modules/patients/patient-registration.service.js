@@ -895,7 +895,13 @@ const createRegistrationInsurance = async (
         );
     }
 
+    const relationship =
+        registration.registrationType === "self"
+            ? "Self"
+            : "Guardian";
+
     const insurance =
+
         await Insurance.create({
             patient: patient._id,
 
@@ -915,6 +921,8 @@ const createRegistrationInsurance = async (
 
             effectiveDate:
                 new Date(effectiveDate),
+
+            relationship,
 
             isPrimary,
 

@@ -27,6 +27,22 @@ router.post(
     authorize("patient.family.create"),
     upload.single("profilePicture"),
     validateImage,
+
+    (req, res, next) => {
+        try {
+            if (typeof req.body.address === "string") {
+                req.body.address = JSON.parse(req.body.address);
+            }
+
+            next();
+        } catch (error) {
+            return res.status(400).json({
+                success: false,
+                message: "Invalid address format",
+            });
+        }
+    },
+
     validate(createFamilyMemberSchema),
     async (req, res, next) => {
         try {

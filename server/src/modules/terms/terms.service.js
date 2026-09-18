@@ -30,7 +30,7 @@ const getActiveTerms = async () =>{
 };
 
 const getAllTerms = async ()=>{
-    return (await Terms.find()).sort({
+    return Terms.find().sort({
         createdAt: -1,
     });
 };
