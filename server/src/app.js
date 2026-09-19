@@ -14,6 +14,7 @@ const insuranceRoutes = require("./modules/insurance/insurance.routes");
 
 const locationRoutes = require("./modules/locations/location.routes");
 const appointmentRoutes = require("./modules/appointments/appointment.routes");
+const clinicalRecordRoutes = require("./modules/clinical-records/clinical-record.routes");
 
 const app = express();
 app.set("trust proxy", 1);
@@ -73,6 +74,7 @@ app.use("/api/patients", patientRoutes);
 app.use("/api/insurance", insuranceRoutes);
 app.use("/api/locations", locationRoutes);
 app.use("/api/appointments", appointmentRoutes);
+app.use("/api/clinical-records", clinicalRecordRoutes);
 
 // ==========================================
 // ADMIN DASHBOARD
