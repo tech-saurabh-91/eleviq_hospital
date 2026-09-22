@@ -1,316 +1,557 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
-import { 
-  ChevronLeft, 
-  ChevronRight, 
-  CreditCard,
-  CheckCircle2,
-  XCircle,
-  Loader2
-} from 'lucide-react';
+import React, { useEffect, useState } from "react";
+import { ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { toast } from "sonner";
+
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+
 import { Button } from "@/components/ui/button";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
+
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+
 import { Textarea } from "@/components/ui/textarea";
+
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { useAppointments } from '@/hooks/useAppoiments';
-import { useRouter } from 'next/navigation';
-import { toast } from 'sonner';
+
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+
 import { Label } from "@/components/ui/label";
-import Link from 'next/link';
-import { AppointmentType, BookAppoimentFormValues } from '@/types/appoiment';
-import { CreateAppointmentRequest } from '@/types/appoiment';
-import { appoimentFormSchema } from '@/schema/appoiment';
 
+import { useForm } from "react-hook-form";
 
+import {
+  AppointmentType,
+} from "@/types/appoiment";
 
-// Family members data
-const familyMembers = [
-  { id: "1", name: "John Smith", relationship: "Spouse" },
-  { id: "2", name: "Emma Smith", relationship: "Child" },
-  { id: "3", name: "Michael Adrew", relationship: "Son" },
+import {
+  useAppointments,
+} from "@/hooks/useAppointments";
+
+import {
+  useFamilyMember,
+} from "@/hooks/useFamilyMember";
+
+interface AppointmentFormValues {
+  appointmentType: string;
+  patientType: "self" | "family";
+  familyMemberId: string;
+  doctorId: string;
+  appointmentDate: string;
+  startTime: string;
+  endTime: string;
+  reason: string;
+}
+
+const appointmentTypes = [
+  {
+    value: "SCHEDULED",
+    label: "Scheduled",
+  },
+  {
+    value: "EMERGENCY",
+    label: "Emergency",
+  },
 ];
-
-
-
-// Add payment status type
-type PaymentStatus = 'idle' | 'processing' | 'success' | 'failed';
-
-// Add appointment prices
-const appointmentPrices = {
-  [AppointmentType.CONSULTATION]: {
-    video: 150,
-    inPerson: 200
-  },
-  [AppointmentType.CHECKUP]: {
-    video: 200,
-    inPerson: 250
-  },
-  [AppointmentType.FOLLOW_UP]: {
-    video: 150,
-    inPerson: 200
-  },
-  [AppointmentType.PROCEDURE]: {
-    video: 300,
-    inPerson: 350
-  },
-  [AppointmentType.EMERGENCY]: {
-    video: 400,
-    inPerson: 450
-  },
-  [AppointmentType.TELEMEDICINE]: {
-    video: 150,
-    inPerson: 200
-  },
-  [AppointmentType.LAB_WORK]: {
-    video: 100,
-    inPerson: 150
-  }
-};
 
 export default function NewAppointmentPage() {
   const router = useRouter();
-  const { createAppointment, getAvailableAppointmentSlots } = useAppointments();
+
+  const {
+    createAppointment,
+    getAvailableDoctors,
+    getAvailableAppointmentSlots,
+  } = useAppointments();
+
+  const {
+    familyMembers,
+    getAllFamilyMembers,
+  } = useFamilyMember();
+
   const [step, setStep] = useState(1);
-  const [paymentStatus, setPaymentStatus] = useState<PaymentStatus>('idle');
+
+  const [doctors, setDoctors] = useState<any[]>([]);
+
   const [availableSlots, setAvailableSlots] = useState<any[]>([]);
-  
-  // Initialize the form with proper typing
-  const form = useForm<BookAppoimentFormValues>({
-    resolver: zodResolver(appoimentFormSchema) as any,
+
+  const [loadingDoctors, setLoadingDoctors] = useState(false);
+
+  const [loadingSlots, setLoadingSlots] = useState(false);
+
+  const [submitting, setSubmitting] = useState(false);
+
+  const form = useForm<AppointmentFormValues>({
     defaultValues: {
+      appointmentType: "SCHEDULED",
+      patientType: "self",
+      familyMemberId: "",
       doctorId: "",
+      appointmentDate: "",
       startTime: "",
-      appointmentType: AppointmentType.CONSULTATION,
-      patientId: "self",
+      endTime: "",
       reason: "",
-      symptoms: "",
-      medications: "",
-      notes: "",
-      isVideoCall: true,
-      roomId: "",
-      cardNumber: "",
-      cardName: "",
-      expiryDate: "",
-      cvv: "",
     },
   });
-  
-  // Fetch available slots when appointment type changes
-  useEffect(() => {
-    const fetchSlots = async () => {
-      const slots = await getAvailableAppointmentSlots(form.getValues("appointmentType"));
-      setAvailableSlots(slots);
-    };
-    fetchSlots();
-  }, [form, getAvailableAppointmentSlots]);
 
-  // Function to handle form submission
-  const onSubmit = async (data: BookAppoimentFormValues) => {
+  const patientType = form.watch("patientType");
+  const doctorId = form.watch("doctorId");
+  const appointmentDate = form.watch("appointmentDate");
+  const selectedSlot = form.watch("startTime");
+
+  // --------------------------------------------------
+  // Load doctors + family members
+  // --------------------------------------------------
+
+  useEffect(() => {
+    const loadInitialData = async () => {
+      setLoadingDoctors(true);
+
+      try {
+        const doctorData = await getAvailableDoctors();
+
+        setDoctors(Array.isArray(doctorData) ? doctorData : []);
+
+        await getAllFamilyMembers();
+      } catch (error) {
+        console.error("Error loading appointment data:", error);
+        toast.error("Failed to load appointment information.");
+      } finally {
+        setLoadingDoctors(false);
+      }
+    };
+
+    loadInitialData();
+  }, []);
+
+  // --------------------------------------------------
+  // Load slots when doctor + date are selected
+  // --------------------------------------------------
+
+  useEffect(() => {
+    const loadSlots = async () => {
+      if (!doctorId || !appointmentDate) {
+        setAvailableSlots([]);
+        return;
+      }
+
+      setLoadingSlots(true);
+
+      try {
+        const slots = await getAvailableAppointmentSlots(
+          doctorId,
+          appointmentDate
+        );
+
+        setAvailableSlots(
+          Array.isArray(slots)
+            ? slots.filter((slot: any) => slot.available !== false)
+            : []
+        );
+
+        form.setValue("startTime", "");
+        form.setValue("endTime", "");
+      } catch (error) {
+        console.error("Error loading appointment slots:", error);
+        setAvailableSlots([]);
+      } finally {
+        setLoadingSlots(false);
+      }
+    };
+
+    loadSlots();
+  }, [doctorId, appointmentDate]);
+
+  // --------------------------------------------------
+  // Select slot
+  // --------------------------------------------------
+
+  const handleSlotChange = (startTime: string) => {
+    form.setValue("startTime", startTime);
+
+    const selected = availableSlots.find(
+      (slot: any) => slot.startTime === startTime
+    );
+
+    if (selected) {
+      form.setValue("endTime", selected.endTime);
+    }
+  };
+
+  // --------------------------------------------------
+  // Step validation
+  // --------------------------------------------------
+
+  const nextStep = async () => {
+    if (step === 1) {
+      const valid = await form.trigger([
+        "appointmentType",
+        "patientType",
+      ]);
+
+      if (!valid) return;
+
+      if (
+        patientType === "family" &&
+        !form.getValues("familyMemberId")
+      ) {
+        toast.error("Please select a family member.");
+        return;
+      }
+
+      setStep(2);
+      return;
+    }
+
+    if (step === 2) {
+      const valid = await form.trigger([
+        "doctorId",
+        "appointmentDate",
+        "startTime",
+        "reason",
+      ]);
+
+      if (!valid) return;
+
+      if (!form.getValues("endTime")) {
+        toast.error("Please select an available time slot.");
+        return;
+      }
+
+      setStep(3);
+      return;
+    }
+
+    setStep(step + 1);
+  };
+
+  const previousStep = () => {
+    setStep((current) => Math.max(1, current - 1));
+  };
+
+  // --------------------------------------------------
+  // Submit appointment
+  // --------------------------------------------------
+
+  const handleSubmit = async () => {
+    const values = form.getValues();
+
+    if (!values.doctorId) {
+      toast.error("Please select a doctor.");
+      return;
+    }
+
+    if (!values.appointmentDate) {
+      toast.error("Please select an appointment date.");
+      return;
+    }
+
+    if (!values.startTime || !values.endTime) {
+      toast.error("Please select an available time slot.");
+      return;
+    }
+
+    if (!values.reason.trim()) {
+      toast.error("Please enter the reason for the visit.");
+      return;
+    }
+
+    setSubmitting(true);
+
     try {
-      const appointmentData: CreateAppointmentRequest = {
-        doctorId: data.doctorId,
-        startTime: data.startTime,
-        appointmentType: data.appointmentType,
-        patientId: data.patientId,
-        reason: data.reason,
+      const appointmentData = {
+        doctorId: values.doctorId,
+        appointmentType: values.appointmentType,
+        appointmentDate: values.appointmentDate,
+        startTime: values.startTime,
+        visitReason: values.reason.trim(),
+        ...(values.patientType === "family" &&
+          values.familyMemberId
+          ? {
+            familyMember: values.familyMemberId,
+          }
+          : {}),
       };
 
       await createAppointment(appointmentData);
-      toast.success("Appointment booked successfully!");
+
+      toast.success("Appointment booked successfully.");
+
       router.push("/patient/appointments");
-    } catch (err) {
-      toast.error("Failed to book appointment. Please try again.");
-      console.error("Error booking appointment:", err);
-    }
-  };
-  
-  // Watch for changes to form values
-  const appointmentType = form.watch("appointmentType");
-  const patientType = form.watch("patientId");
-  
-  // Handle patient selection change
-  const handlePatientChange = (value: string) => {
-    if (value === "family" && familyMembers.length > 0) {
-      form.setValue("patientId", familyMembers[0].id);
-    } else {
-      form.setValue("patientId", "self");
-    }
-  };
-  
-  // Handle family member selection change
-  const handleFamilyMemberChange = (value: string) => {
-    form.setValue("patientId", value);
-  };
-  
-  // Function to move to the next step
-  const nextStep = async () => {
-    // Validate current step
-    if (step === 1) {
-      const isValid = await form.trigger(["appointmentType", "patientId"]);
-      if (!isValid) return;
-    } else if (step === 2) {
-      const isValid = await form.trigger(["startTime", "reason"]);
-      if (!isValid) return;
-    }
-    
-    setStep(step + 1);
-  };
-  
-  // Function to go to the previous step
-  const prevStep = () => {
-    setStep(step - 1);
-  };
+    } catch (error: any) {
+      console.error("Appointment creation failed:", error);
 
-  // Function to handle payment
-  const handlePayment = async () => {
-    setPaymentStatus('processing');
-    try {
-      await form.handleSubmit(onSubmit)();
-      setPaymentStatus('success');
-    } catch {
-      setPaymentStatus('failed');
-      toast.error("Payment failed. Please try again.");
+      const message =
+        error?.response?.data?.message ||
+        error?.response?.data?.error ||
+        "Failed to book appointment. Please try again.";
+
+      toast.error(message);
+    } finally {
+      setSubmitting(false);
     }
   };
 
-  // Calculate appointment price
-  const calculatePrice = () => {
-    const type = form.getValues("appointmentType");
-    const isVideo = form.getValues("isVideoCall");
-    return appointmentPrices[type][isVideo ? "video" : "inPerson"];
+  // --------------------------------------------------
+  // Family member display helper
+  // --------------------------------------------------
+
+  const getFamilyMemberName = (member: any) => {
+    if (member.name) return member.name;
+
+    return [
+      member.firstName,
+      member.middleName,
+      member.lastName,
+    ]
+      .filter(Boolean)
+      .join(" ");
+  };
+
+  // --------------------------------------------------
+  // Doctor display helper
+  // --------------------------------------------------
+
+  const getDoctorName = (doctor: any) => {
+    return doctor.username || doctor.name || "Doctor";
   };
 
   return (
     <div className="max-w-5xl mx-auto">
       <div className="mb-6">
-        <Link 
-          href="/patient/appointments" 
+        <Link
+          href="/patient/appointments"
           className="flex items-center text-gray-600 hover:text-customTeal"
         >
           <ChevronLeft className="h-4 w-4 mr-1" />
           <span>Back to Appointments</span>
         </Link>
       </div>
-      
+
       <Card>
         <CardHeader>
-          <CardTitle className="text-2xl font-bold text-customTeal">Book an Appointment</CardTitle>
-          <CardDescription>Complete the form below to schedule your appointment</CardDescription>
+          <CardTitle className="text-2xl font-bold text-customTeal">
+            Book an Appointment
+          </CardTitle>
+
+          <CardDescription>
+            Select a doctor, date and available appointment time.
+          </CardDescription>
         </CardHeader>
-        
+
         <CardContent>
+          {/* Step indicator */}
+
+          <div className="flex items-center mb-8">
+            {[1, 2, 3].map((number) => (
+              <React.Fragment key={number}>
+                <div
+                  className={`flex items-center justify-center w-8 h-8 rounded-full ${step >= number
+                      ? "bg-customTeal text-white"
+                      : "bg-gray-200 text-gray-500"
+                    }`}
+                >
+                  {number}
+                </div>
+
+                {number < 3 && (
+                  <div
+                    className={`h-1 flex-1 mx-2 ${step > number
+                        ? "bg-customTeal"
+                        : "bg-gray-200"
+                      }`}
+                  />
+                )}
+              </React.Fragment>
+            ))}
+          </div>
+
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-              {/* Step indicator */}
-              <div className="flex items-center mb-6">
-                <div className={`flex items-center justify-center w-8 h-8 rounded-full ${step >= 1 ? 'bg-customTeal text-white' : 'bg-gray-200 text-gray-500'}`}>1</div>
-                <div className={`h-1 flex-1 mx-2 ${step >= 2 ? 'bg-customTeal' : 'bg-gray-200'}`}></div>
-                <div className={`flex items-center justify-center w-8 h-8 rounded-full ${step >= 2 ? 'bg-customTeal text-white' : 'bg-gray-200 text-gray-500'}`}>2</div>
-                <div className={`h-1 flex-1 mx-2 ${step >= 3 ? 'bg-customTeal' : 'bg-gray-200'}`}></div>
-                <div className={`flex items-center justify-center w-8 h-8 rounded-full ${step >= 3 ? 'bg-customTeal text-white' : 'bg-gray-200 text-gray-500'}`}>3</div>
-                <div className={`h-1 flex-1 mx-2 ${step >= 4 ? 'bg-customTeal' : 'bg-gray-200'}`}></div>
-                <div className={`flex items-center justify-center w-8 h-8 rounded-full ${step >= 4 ? 'bg-customTeal text-white' : 'bg-gray-200 text-gray-500'}`}>4</div>
-              </div>
-              
-              {/* Step 1: Appointment Type and Patient Selection */}
+            <form
+              onSubmit={(event) => {
+                event.preventDefault();
+
+                if (step < 3) {
+                  nextStep();
+                } else {
+                  handleSubmit();
+                }
+              }}
+              className="space-y-6"
+            >
+              {/* -------------------------------- */}
+              {/* STEP 1 */}
+              {/* -------------------------------- */}
+
               {step === 1 && (
-                <div className="space-y-5">
-                  <h2 className="text-lg font-semibold">Appointment Type &amp; Patient Selection</h2>
-                  
+                <div className="space-y-6">
+                  <h2 className="text-lg font-semibold">
+                    Appointment Type & Patient
+                  </h2>
+
                   <FormField
                     control={form.control}
                     name="appointmentType"
                     render={({ field }) => (
-                      <FormItem className="space-y-3">
-                        <FormLabel>Appointment Type</FormLabel>
+                      <FormItem>
+                        <FormLabel>
+                          Appointment Type
+                        </FormLabel>
+
                         <FormControl>
                           <RadioGroup
+                            value={field.value}
                             onValueChange={field.onChange}
-                            defaultValue={field.value}
-                            className="flex flex-col space-y-2 md:flex-row md:space-y-0 md:space-x-4"
+                            className="grid grid-cols-1 md:grid-cols-3 gap-3"
                           >
-                            <div className="flex items-center space-x-2">
-                              <RadioGroupItem value={AppointmentType.CONSULTATION} id="consultation" />
-                              <Label htmlFor="consultation" className="text-base cursor-pointer">Consultation</Label>
-                            </div>
-                            <div className="flex items-center space-x-2">
-                              <RadioGroupItem value={AppointmentType.CHECKUP} id="checkup" />
-                              <Label htmlFor="checkup" className="text-base cursor-pointer">Checkup</Label>
-                            </div>
-                            <div className="flex items-center space-x-2">
-                              <RadioGroupItem value={AppointmentType.FOLLOW_UP} id="followup" />
-                              <Label htmlFor="followup" className="text-base cursor-pointer">Follow-up</Label>
-                            </div>
+                            {appointmentTypes.map((type) => (
+                              <div
+                                key={type.value}
+                                className="flex items-center space-x-2 border rounded-lg p-4"
+                              >
+                                <RadioGroupItem
+                                  value={type.value}
+                                  id={type.value}
+                                />
+
+                                <Label
+                                  htmlFor={type.value}
+                                  className="cursor-pointer"
+                                >
+                                  {type.label}
+                                </Label>
+                              </div>
+                            ))}
                           </RadioGroup>
                         </FormControl>
+
                         <FormMessage />
                       </FormItem>
                     )}
                   />
-                  
+
                   <FormField
                     control={form.control}
-                    name="patientId"
+                    name="patientType"
                     render={({ field }) => (
-                      <FormItem className="space-y-3">
-                        <FormLabel>Patient</FormLabel>
+                      <FormItem>
+                        <FormLabel>
+                          Appointment For
+                        </FormLabel>
+
                         <FormControl>
                           <RadioGroup
+                            value={field.value}
                             onValueChange={(value) => {
                               field.onChange(value);
-                              handlePatientChange(value);
+
+                              if (value === "self") {
+                                form.setValue(
+                                  "familyMemberId",
+                                  ""
+                                );
+                              }
                             }}
-                            defaultValue={field.value}
-                            className="flex flex-col space-y-2"
+                            className="flex gap-6"
                           >
                             <div className="flex items-center space-x-2">
-                              <RadioGroupItem value="self" id="self" />
-                              <Label htmlFor="self" className="text-base cursor-pointer">Self</Label>
+                              <RadioGroupItem
+                                value="self"
+                                id="patient-self"
+                              />
+
+                              <Label htmlFor="patient-self">
+                                Myself
+                              </Label>
                             </div>
+
                             <div className="flex items-center space-x-2">
-                              <RadioGroupItem value="family" id="family" />
-                              <Label htmlFor="family" className="text-base cursor-pointer">Family Member</Label>
+                              <RadioGroupItem
+                                value="family"
+                                id="patient-family"
+                              />
+
+                              <Label htmlFor="patient-family">
+                                Family Member
+                              </Label>
                             </div>
                           </RadioGroup>
                         </FormControl>
-                        <FormMessage />
                       </FormItem>
                     )}
                   />
-                  
+
                   {patientType === "family" && (
                     <FormField
                       control={form.control}
-                      name="patientId"
+                      name="familyMemberId"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Select Family Member</FormLabel>
+                          <FormLabel>
+                            Select Family Member
+                          </FormLabel>
+
                           <Select
-                            onValueChange={(value) => {
-                              field.onChange(value);
-                              handleFamilyMemberChange(value);
-                            }}
-                            defaultValue={field.value}
+                            value={field.value}
+                            onValueChange={field.onChange}
                           >
                             <FormControl>
                               <SelectTrigger>
-                                <SelectValue placeholder="Select a family member" />
+                                <SelectValue placeholder="Select family member" />
                               </SelectTrigger>
                             </FormControl>
+
                             <SelectContent>
-                              {familyMembers.map((member) => (
-                                <SelectItem key={member.id} value={member.id}>
-                                  {member.name}
+                              {familyMembers.length === 0 ? (
+                                <SelectItem
+                                  value="none"
+                                  disabled
+                                >
+                                  No family members found
                                 </SelectItem>
-                              ))}
+                              ) : (
+                                familyMembers.map(
+                                  (member: any) => {
+                                    const id =
+                                      member.id ||
+                                      member._id;
+
+                                    return (
+                                      <SelectItem
+                                        key={id}
+                                        value={id}
+                                      >
+                                        {getFamilyMemberName(
+                                          member
+                                        )}
+                                      </SelectItem>
+                                    );
+                                  }
+                                )
+                              )}
                             </SelectContent>
                           </Select>
+
                           <FormMessage />
                         </FormItem>
                       )}
@@ -318,327 +559,330 @@ export default function NewAppointmentPage() {
                   )}
                 </div>
               )}
-              
-              {/* Step 2: Visit Details */}
+
+              {/* -------------------------------- */}
+              {/* STEP 2 */}
+              {/* -------------------------------- */}
+
               {step === 2 && (
-                <div className="space-y-5">
-                  <h2 className="text-lg font-semibold">Visit Details</h2>
-                  
+                <div className="space-y-6">
+                  <h2 className="text-lg font-semibold">
+                    Doctor & Visit Details
+                  </h2>
+
+                  <FormField
+                    control={form.control}
+                    name="doctorId"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>
+                          Doctor
+                        </FormLabel>
+
+                        <Select
+                          value={field.value}
+                          onValueChange={field.onChange}
+                          disabled={loadingDoctors}
+                        >
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue
+                                placeholder={
+                                  loadingDoctors
+                                    ? "Loading doctors..."
+                                    : "Select a doctor"
+                                }
+                              />
+                            </SelectTrigger>
+                          </FormControl>
+
+                          <SelectContent>
+                            {doctors.length === 0 ? (
+                              <SelectItem
+                                value="none"
+                                disabled
+                              >
+                                No doctors available
+                              </SelectItem>
+                            ) : (
+                              doctors.map((doctor: any) => (
+                                <SelectItem
+                                  key={doctor.doctorId}
+                                  value={doctor.doctorId}
+                                >
+                                  {getDoctorName(doctor)}
+                                  {doctor.mobile
+                                    ? ` - ${doctor.mobile}`
+                                    : ""}
+                                </SelectItem>
+                              ))
+                            )}
+                          </SelectContent>
+                        </Select>
+
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="appointmentDate"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>
+                          Appointment Date
+                        </FormLabel>
+
+                        <FormControl>
+                          <input
+                            type="date"
+                            min={
+                              new Date()
+                                .toISOString()
+                                .split("T")[0]
+                            }
+                            {...field}
+                            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                          />
+                        </FormControl>
+
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
                   <FormField
                     control={form.control}
                     name="startTime"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Preferred Time</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <FormLabel>
+                          Available Time
+                        </FormLabel>
+
+                        <Select
+                          value={field.value}
+                          onValueChange={handleSlotChange}
+                          disabled={
+                            !doctorId ||
+                            !appointmentDate ||
+                            loadingSlots
+                          }
+                        >
                           <FormControl>
                             <SelectTrigger>
-                              <SelectValue placeholder="Select a time" />
+                              <SelectValue
+                                placeholder={
+                                  loadingSlots
+                                    ? "Loading available slots..."
+                                    : !doctorId
+                                      ? "Select a doctor first"
+                                      : !appointmentDate
+                                        ? "Select a date first"
+                                        : "Select an available time"
+                                }
+                              />
                             </SelectTrigger>
                           </FormControl>
+
                           <SelectContent>
-                            {availableSlots.map((slot) => (
-                              <SelectItem key={slot.time} value={slot.time}>
-                                {slot.time}
+                            {availableSlots.length === 0 ? (
+                              <SelectItem
+                                value="none"
+                                disabled
+                              >
+                                No available slots
                               </SelectItem>
-                            ))}
+                            ) : (
+                              availableSlots.map(
+                                (slot: any) => (
+                                  <SelectItem
+                                    key={`${slot.startTime}-${slot.endTime}`}
+                                    value={slot.startTime}
+                                  >
+                                    {slot.startTime} -{" "}
+                                    {slot.endTime}
+                                  </SelectItem>
+                                )
+                              )
+                            )}
                           </SelectContent>
                         </Select>
+
                         <FormMessage />
                       </FormItem>
                     )}
                   />
-                  
+
                   <FormField
                     control={form.control}
                     name="reason"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Reason for Visit</FormLabel>
+                        <FormLabel>
+                          Reason for Visit
+                        </FormLabel>
+
                         <FormControl>
-                          <Textarea 
-                            placeholder="Please describe your reason for visit" 
+                          <Textarea
+                            placeholder="Describe the reason for your visit"
                             className="resize-none"
                             {...field}
                           />
                         </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  
-                  <FormField
-                    control={form.control}
-                    name="symptoms"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Symptoms (Optional)</FormLabel>
-                        <FormControl>
-                          <Textarea 
-                            placeholder="Please describe any symptoms you're experiencing" 
-                            className="resize-none"
-                            {...field}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  
-                  <FormField
-                    control={form.control}
-                    name="medications"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Current Medications (Optional)</FormLabel>
-                        <FormControl>
-                          <Textarea 
-                            placeholder="Please list any medications you're currently taking" 
-                            className="resize-none"
-                            {...field}
-                          />
-                        </FormControl>
+
                         <FormMessage />
                       </FormItem>
                     )}
                   />
                 </div>
               )}
-              
-              {/* Step 3: Confirmation */}
+
+              {/* -------------------------------- */}
+              {/* STEP 3 */}
+              {/* -------------------------------- */}
+
               {step === 3 && (
-                <div className="space-y-5">
-                  <h2 className="text-lg font-semibold">Appointment Confirmation</h2>
-                  
-                  <div className="bg-gray-50 rounded-lg p-4 space-y-4">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                      <div>
-                        <p className="text-gray-500">Appointment Type</p>
-                        <p className="font-medium">{appointmentType}</p>
-                      </div>
-                      
-                      <div>
-                        <p className="text-gray-500">Patient</p>
-                        <p className="font-medium">{patientType === "self" ? "Self" : familyMembers.find(m => m.id === patientType)?.name}</p>
-                      </div>
-                      
-                      <div>
-                        <p className="text-gray-500">Date &amp; Time</p>
-                        <p className="font-medium">{form.getValues("startTime")}</p>
-                      </div>
-                      
-                      <div>
-                        <p className="text-gray-500">Reason for Visit</p>
-                        <p className="font-medium">{form.getValues("reason")}</p>
-                      </div>
-                      
-                      <div>
-                        <p className="text-gray-500">Symptoms</p>
-                        <p className="font-medium">{form.getValues("symptoms")}</p>
-                      </div>
-                      
-                      <div>
-                        <p className="text-gray-500">Current Medications</p>
-                        <p className="font-medium">{form.getValues("medications")}</p>
-                      </div>
+                <div className="space-y-6">
+                  <h2 className="text-lg font-semibold">
+                    Confirm Appointment
+                  </h2>
+
+                  <div className="bg-gray-50 rounded-lg p-6 space-y-4">
+                    <div>
+                      <p className="text-sm text-gray-500">
+                        Appointment Type
+                      </p>
+
+                      <p className="font-medium">
+                        {form.getValues(
+                          "appointmentType"
+                        )}
+                      </p>
                     </div>
+
+                    <div>
+                      <p className="text-sm text-gray-500">
+                        Appointment For
+                      </p>
+
+                      <p className="font-medium">
+                        {patientType === "self"
+                          ? "Myself"
+                          : getFamilyMemberName(
+                            familyMembers.find(
+                              (member: any) =>
+                                (member.id ||
+                                  member._id) ===
+                                form.getValues(
+                                  "familyMemberId"
+                                )
+                            ) || {}
+                          )}
+                      </p>
+                    </div>
+
+                    <div>
+                      <p className="text-sm text-gray-500">
+                        Doctor
+                      </p>
+
+                      <p className="font-medium">
+                        {getDoctorName(
+                          doctors.find(
+                            (doctor: any) =>
+                              doctor.doctorId ===
+                              form.getValues("doctorId")
+                          ) || {}
+                        )}
+                      </p>
+                    </div>
+
+                    <div>
+                      <p className="text-sm text-gray-500">
+                        Date
+                      </p>
+
+                      <p className="font-medium">
+                        {form.getValues(
+                          "appointmentDate"
+                        )}
+                      </p>
+                    </div>
+
+                    <div>
+                      <p className="text-sm text-gray-500">
+                        Time
+                      </p>
+
+                      <p className="font-medium">
+                        {selectedSlot} -{" "}
+                        {form.getValues("endTime")}
+                      </p>
+                    </div>
+
+                    <div>
+                      <p className="text-sm text-gray-500">
+                        Reason
+                      </p>
+
+                      <p className="font-medium">
+                        {form.getValues("reason")}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="border rounded-lg p-4 bg-blue-50">
+                    <p className="text-sm text-blue-800">
+                      Online payment is not included in this
+                      step because the backend payment service is
+                      not currently configured.
+                    </p>
                   </div>
                 </div>
               )}
-              
-              {/* Step 4: Payment */}
-              {step === 4 && (
-                <div className="space-y-6">
-                  <h2 className="text-lg font-semibold">Payment Information</h2>
-                  
-                  {paymentStatus === 'idle' && (
-                    <div className="space-y-6">
-                      {/* Appointment Summary */}
-                      <div className="bg-gray-50 rounded-lg p-4 space-y-4">
-                        <h3 className="font-medium">Appointment Summary</h3>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                          <div>
-                            <p className="text-gray-500">Appointment Type</p>
-                            <p className="font-medium">{appointmentType}</p>
-                          </div>
-                          
-                          <div>
-                            <p className="text-gray-500">Patient</p>
-                            <p className="font-medium">{patientType === "self" ? "Self" : familyMembers.find(m => m.id === patientType)?.name}</p>
-                          </div>
-                          
-                          <div>
-                            <p className="text-gray-500">Date &amp; Time</p>
-                            <p className="font-medium">{form.getValues("startTime")}</p>
-                          </div>
-                          
-                          <div>
-                            <p className="text-gray-500">Reason for Visit</p>
-                            <p className="font-medium">{form.getValues("reason")}</p>
-                          </div>
-                        </div>
-                        
-                        <div className="border-t pt-4 mt-4">
-                          <div className="flex justify-between text-sm">
-                            <span>Appointment Fee</span>
-                            <span className="font-medium">${calculatePrice()}</span>
-                          </div>
-                          <div className="flex justify-between text-sm mt-2">
-                            <span>Platform Fee</span>
-                            <span className="font-medium">$0.00</span>
-                          </div>
-                          <div className="border-t pt-2 mt-2">
-                            <div className="flex justify-between font-medium">
-                              <span>Total</span>
-                              <span>${calculatePrice()}</span>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                      
-                      {/* Payment Form */}
-                      <div className="space-y-4">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          <FormField
-                            control={form.control}
-                            name="cardNumber"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>Card Number</FormLabel>
-                                <FormControl>
-                                  <Input 
-                                    placeholder="1234 5678 9012 3456" 
-                                    {...field}
-                                    className="font-mono"
-                                  />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                          
-                          <FormField
-                            control={form.control}
-                            name="cardName"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>Cardholder Name</FormLabel>
-                                <FormControl>
-                                  <Input 
-                                    placeholder="John Doe" 
-                                    {...field}
-                                  />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                        </div>
-                        
-                        <div className="grid grid-cols-2 gap-4">
-                          <FormField
-                            control={form.control}
-                            name="expiryDate"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>Expiry Date</FormLabel>
-                                <FormControl>
-                                  <Input 
-                                    placeholder="MM/YY" 
-                                    {...field}
-                                  />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                          
-                          <FormField
-                            control={form.control}
-                            name="cvv"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>CVV</FormLabel>
-                                <FormControl>
-                                  <Input 
-                                    placeholder="123" 
-                                    {...field}
-                                    className="font-mono"
-                                  />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                  
-                  {paymentStatus === 'processing' && (
-                    <div className="text-center py-8">
-                      <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-customTeal" />
-                      <p className="text-gray-600">Processing your payment...</p>
-                    </div>
-                  )}
-                  
-                  {paymentStatus === 'success' && (
-                    <div className="text-center py-8">
-                      <CheckCircle2 className="h-8 w-8 mx-auto mb-4 text-green-500" />
-                      <h3 className="text-lg font-medium mb-2">Payment Successful!</h3>
-                      <p className="text-gray-600">Your appointment has been booked successfully.</p>
-                    </div>
-                  )}
-                  
-                  {paymentStatus === 'failed' && (
-                    <div className="text-center py-8">
-                      <XCircle className="h-8 w-8 mx-auto mb-4 text-red-500" />
-                      <h3 className="text-lg font-medium mb-2">Payment Failed</h3>
-                      <p className="text-gray-600">There was an error processing your payment. Please try again.</p>
-                    </div>
-                  )}
-                </div>
-              )}
-              
-              {/* Navigation Buttons */}
-              <div className="flex justify-between pt-6">
-                {step > 1 && (
+
+              {/* -------------------------------- */}
+              {/* Navigation */}
+              {/* -------------------------------- */}
+
+              <div className="flex justify-between pt-6 border-t">
+                {step > 1 ? (
                   <Button
                     type="button"
                     variant="outline"
-                    onClick={prevStep}
+                    onClick={previousStep}
+                    disabled={submitting}
                   >
                     <ChevronLeft className="h-4 w-4 mr-2" />
                     Previous
                   </Button>
+                ) : (
+                  <div />
                 )}
-                
-                {step < 4 ? (
+
+                {step < 3 ? (
                   <Button
-                    type="button"
+                    type="submit"
                     className="bg-customTeal"
-                    onClick={nextStep}
                   >
                     Next
                     <ChevronRight className="h-4 w-4 ml-2" />
                   </Button>
                 ) : (
                   <Button
-                    type="button"
+                    type="submit"
                     className="bg-customTeal"
-                    onClick={handlePayment}
-                    disabled={paymentStatus === 'processing'}
+                    disabled={submitting}
                   >
-                    {paymentStatus === 'processing' ? (
+                    {submitting ? (
                       <>
                         <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                        Processing...
+                        Booking...
                       </>
                     ) : (
-                      <>
-                        <CreditCard className="h-4 w-4 mr-2" />
-                        Pay ${calculatePrice()}
-                      </>
+                      "Confirm Appointment"
                     )}
                   </Button>
                 )}
@@ -649,4 +893,4 @@ export default function NewAppointmentPage() {
       </Card>
     </div>
   );
-} 
+}

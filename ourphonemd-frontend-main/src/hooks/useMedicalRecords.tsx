@@ -11,14 +11,22 @@ export const useMedicalRecords = () => {
 
   const getAllMedicalRecords = async () => {
     setLoading(true);
+    setError(null);
+
     try {
       const response = await axios.get(
-        `${PATIENT_MEDICAL_RECORDS_API.GET_ALL}`
+        PATIENT_MEDICAL_RECORDS_API.GET_ALL
       );
-      setMedicalRecords(response.data);
+
+      const data = response.data?.data ?? response.data ?? [];
+
+      setMedicalRecords(data);
+
+      return data;
     } catch (error) {
       console.error("Error fetching medical records:", error);
       setError("Failed to fetch medical records");
+      return [];
     } finally {
       setLoading(false);
     }

@@ -24,7 +24,7 @@ import {
   ChevronLeft
 } from 'lucide-react';
 import Link from 'next/link';
-import { useAppointments } from '@/hooks/useAppoiments';
+import { useAppointments } from '@/hooks/useAppointments';
 import { toast } from 'sonner';
 import { AppointmentType, AppointmentStatus } from '@/types/appoiment';
 

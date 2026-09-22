@@ -11,19 +11,29 @@ export const useFamilyMember = () => {
     const [familyMembers, setFamilyMembers] = useState<FamilyMember[]>([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
-    
+
     const getAllFamilyMembers = async () => {
         setLoading(true);
+        setError(null);
+
         try {
-            const response = await axios.get(`${PATIENT_FAMILY_API.GET_ALL}`)
-            setFamilyMembers(response.data);
+            const response = await axios.get(
+                PATIENT_FAMILY_API.GET_ALL
+            );
+
+            const data = response.data?.data ?? response.data ?? [];
+
+            setFamilyMembers(data);
+
+            return data;
         } catch (error) {
             console.error("Error fetching family members:", error);
             setError("Failed to fetch family members");
+            return [];
         } finally {
             setLoading(false);
         }
-    }
+    };
 
     const getFamilyMemberById = async (id: string) => {
         setLoading(true);
@@ -50,7 +60,7 @@ export const useFamilyMember = () => {
             setLoading(false);
         }
     }
-    
+
 
     return {
         familyMembers,

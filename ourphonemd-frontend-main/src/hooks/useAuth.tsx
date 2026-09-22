@@ -30,6 +30,36 @@ const ORGANIZATION_ID = "cmayaxw0g0001u3dsftfodhbh";
 // We will later fetch/use the actual active Terms record.
 const TERMS_ID = "6a97c26a0a63999554599771";
 
+const calculateAge = (dateOfBirth: string) => {
+  const birthDate = new Date(`${dateOfBirth}T00:00:00`);
+
+  if (Number.isNaN(birthDate.getTime())) {
+    return null;
+  }
+
+  const today = new Date();
+
+  let age =
+    today.getFullYear() -
+    birthDate.getFullYear();
+
+  const monthDifference =
+    today.getMonth() -
+    birthDate.getMonth();
+
+  if (
+    monthDifference < 0 ||
+    (
+      monthDifference === 0 &&
+      today.getDate() < birthDate.getDate()
+    )
+  ) {
+    age--;
+  }
+
+  return age;
+};
+
 export const useAuth = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -95,6 +125,8 @@ export const useAuth = () => {
       memberId: "",
       groupNumber: "",
       policyHolderName: "",
+
+      verificationMethod: null,
 
       emailVerificationCode: "",
       phoneVerificationCode: "",
@@ -251,6 +283,20 @@ export const useAuth = () => {
   const createAccount = async (id: string) => {
     const data = signupForm.getValues();
 
+    const age = calculateAge(data.dateOfBirth);
+
+    if (age === null) {
+      throw new Error(
+        "Please enter a valid date of birth"
+      );
+    }
+
+    if (age < 18) {
+      throw new Error(
+        "Account holder must be at least 18 years old"
+      );
+    }
+
     if (!data.isAdult && data.isAdult !== false) {
       throw new Error("Please complete age verification");
     }
@@ -304,7 +350,10 @@ export const useAuth = () => {
       })
     );
 
-    formData.append("confirmationAccepted", "true");
+    formData.append(
+      "confirmationAccepted",
+      String(data.informationConfirmed)
+    );
 
     await axios.post(
       PATIENT_REGISTRATION_API.ACCOUNT,
@@ -324,12 +373,15 @@ export const useAuth = () => {
    * =========================
    */
 
-  const sendVerificationCode = async (id: string) => {
+  const sendVerificationCode = async (
+    id: string,
+    method: "email" | "phone"
+  ) => {
     await axios.post(
       PATIENT_REGISTRATION_API.VERIFICATION_METHOD,
       {
         registrationId: id,
-        method: "email",
+        method,
       },
       {
         headers: {
@@ -349,15 +401,28 @@ export const useAuth = () => {
   const verifyOtp = async (id: string) => {
     const data = signupForm.getValues();
 
-    if (!data.emailVerificationCode) {
-      throw new Error("Please enter the verification code");
+    if (!data.verificationMethod) {
+      throw new Error(
+        "Please select a verification method"
+      );
+    }
+
+    const otp =
+      data.verificationMethod === "email"
+        ? data.emailVerificationCode
+        : data.phoneVerificationCode;
+
+    if (!otp) {
+      throw new Error(
+        "Please enter the verification code"
+      );
     }
 
     const response = await axios.post(
       PATIENT_REGISTRATION_API.VERIFY_OTP,
       {
         registrationId: id,
-        otp: data.emailVerificationCode,
+        otp,
       },
       {
         headers: {
@@ -408,11 +473,19 @@ export const useAuth = () => {
         ]);
         break;
 
-      case 2: {
+      case 2:
+        isValid = true;
+        break;
+
+      case 3: {
         const ageValue = signupForm.getValues("isAdult");
 
-        if (ageValue === null || ageValue === undefined) {
+        if (
+          ageValue === null ||
+          ageValue === undefined
+        ) {
           signupForm.setError("isAdult", {
+            type: "required",
             message: "Please select one option",
           });
 
@@ -423,15 +496,7 @@ export const useAuth = () => {
         break;
       }
 
-      case 3:
-        isValid = await signupForm.trigger([
-          "hasPharmacyInfo",
-          "hasMedicalRecords",
-          "hasEmergencyContact",
-        ]);
-        break;
-
-      case 4:
+      case 4: {
         isValid = await signupForm.trigger([
           "email",
           "password",
@@ -444,14 +509,67 @@ export const useAuth = () => {
           "city",
           "state",
           "zipCode",
+          "informationConfirmed",
         ]);
-        break;
 
-      case 5:
-        isValid = await signupForm.trigger([
-          "emailVerificationCode",
-        ]);
+        if (!isValid) {
+          break;
+        }
+
+        const data = signupForm.getValues();
+
+        const age = calculateAge(data.dateOfBirth);
+
+        if (age === null) {
+          signupForm.setError("dateOfBirth", {
+            type: "validate",
+            message: "Please enter a valid date of birth",
+          });
+
+          return false;
+        }
+
+        if (age < 18) {
+          signupForm.setError("dateOfBirth", {
+            type: "validate",
+            message:
+              "Account holder must be at least 18 years old.",
+          });
+
+          toast.error(
+            "The account holder must be at least 18 years old."
+          );
+
+          return false;
+        }
+
+        isValid = true;
+
         break;
+      }
+
+      case 5: {
+        const method = signupForm.getValues(
+          "verificationMethod"
+        );
+
+        if (!method) {
+          signupForm.setError("verificationMethod", {
+            message: "Please select a verification method",
+          });
+
+          return false;
+        }
+
+        const codeField =
+          method === "email"
+            ? "emailVerificationCode"
+            : "phoneVerificationCode";
+
+        isValid = await signupForm.trigger(codeField);
+
+        break;
+      }
 
       case 6:
         if (signupForm.getValues("hasInsuranceCard")) {
@@ -503,10 +621,10 @@ export const useAuth = () => {
       }
 
       /*
-       * STEP 2
-       *
-       * Complete age verification.
-       */
+ * STEP 2
+ *
+ * Complete prerequisites.
+ */
       if (currentStep === 2) {
         if (!registrationId) {
           throw new Error(
@@ -516,7 +634,7 @@ export const useAuth = () => {
 
         setIsLoading(true);
 
-        await completeAgeVerification(registrationId);
+        await completePrerequisites(registrationId);
 
         setCurrentStep(3);
 
@@ -524,10 +642,10 @@ export const useAuth = () => {
       }
 
       /*
-       * STEP 3
-       *
-       * Complete prerequisites.
-       */
+ * STEP 3
+ *
+ * Complete age verification.
+ */
       if (currentStep === 3) {
         if (!registrationId) {
           throw new Error(
@@ -537,7 +655,7 @@ export const useAuth = () => {
 
         setIsLoading(true);
 
-        await completePrerequisites(registrationId);
+        await completeAgeVerification(registrationId);
 
         setCurrentStep(4);
 
@@ -559,12 +677,6 @@ export const useAuth = () => {
         setIsLoading(true);
 
         await createAccount(registrationId);
-
-        await sendVerificationCode(registrationId);
-
-        toast.success(
-          "Verification code sent to your email"
-        );
 
         setCurrentStep(5);
 
@@ -711,16 +823,22 @@ export const useAuth = () => {
         return <TermsAndConditions />;
 
       case 2:
-        return <Step3AgeVerification />;
+        return <Step2Prerequisites />;
 
       case 3:
-        return <Step2Prerequisites />;
+        return <Step3AgeVerification />;
 
       case 4:
         return <Step4ProfileCreation />;
 
       case 5:
-        return <Step5Verification />;
+        return (
+          <Step5Verification
+            onSendVerificationCode={sendVerificationCode}
+            onResendVerificationCode={resendOtp}
+            registrationId={registrationId}
+          />
+        );
 
       case 6:
         return (
@@ -734,8 +852,8 @@ export const useAuth = () => {
 
   const stepTitles = [
     "Terms & Conditions",
-    "Age Verification",
     "Prerequisites",
+    "Age Verification",
     "Account Creation",
     "Verification",
     "Insurance",

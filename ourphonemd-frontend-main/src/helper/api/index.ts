@@ -21,6 +21,9 @@ export const PATIENT_REGISTRATION_API = {
   VERIFY_OTP: `${BASE_URL}/patients/registration/verify-otp`,
 
   RESEND_OTP: `${BASE_URL}/patients/registration/resend-otp`,
+
+  INSURANCE: (registrationId: string) =>
+    `${BASE_URL}/patients/registration/${registrationId}/insurance`,
 };
 
 export const PATIENT_INSURANCE_API = {
@@ -29,10 +32,10 @@ export const PATIENT_INSURANCE_API = {
 };
 
 export const PATIENT_APPOINTMENT_API = {
-  CREATE: `${BASE_URL}/appointments/create`,
-  GET_ALL: `${BASE_URL}/patient/appointments`,
-  DELETE: (id: any) => `${BASE_URL}/patient/appointments/${id}`,
-  GET_AVAILABLE_APPOINTMENT_SLOTS: (id: any) => `${BASE_URL}/patient/appointments/${id}`,
+  CREATE: `${BASE_URL}/appointments`,
+  GET_ALL: `${BASE_URL}/appointments`,
+  GET_DOCTORS: `${BASE_URL}/appointments/doctors`,
+  GET_AVAILABLE_APPOINTMENT_SLOTS: `${BASE_URL}/appointments/available-slots`,
 };
 
 
@@ -44,9 +47,10 @@ export const PATIENT_FAMILY_API = {
 
 
 export const PATIENT_MEDICAL_RECORDS_API = {
-  GET_ALL: `${BASE_URL}/patient/medical-records`,
-  GET_SINGLE: (id: any) => `${BASE_URL}/patient/medical-records/${id}`,
-}
+  GET_ALL: `${BASE_URL}/clinical-records/my-history`,
+  GET_SINGLE: (id: string) =>
+    `${BASE_URL}/clinical-records/${id}`,
+};
 
 
 export const PATIENT_PAYMENT_API = {

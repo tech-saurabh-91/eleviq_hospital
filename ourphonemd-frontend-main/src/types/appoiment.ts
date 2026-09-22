@@ -28,10 +28,11 @@ export enum AppointmentType {
 // Appointment request interface
 export interface CreateAppointmentRequest {
   doctorId: string;
+  familyMember?: string;
+  appointmentType: string;
+  appointmentDate: string;
   startTime: string;
-  appointmentType: AppointmentType;
-  patientId: string;
-  reason: string;
+  visitReason: string;
 }
 
 // Appointment response interface
