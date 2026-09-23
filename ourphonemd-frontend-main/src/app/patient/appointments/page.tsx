@@ -1,19 +1,31 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 "use client";
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from "react";
 import Link from 'next/link';
-import { 
-  CalendarPlus, 
-  CalendarClock, 
-  Clock, 
-  Calendar, 
-  ChevronRight, 
-  VideoIcon, 
+import {
+  CalendarPlus,
+  CalendarClock,
+  Clock,
+  Calendar,
+  ChevronRight,
+  VideoIcon,
   MapPin,
   User,
+  FileText,
+  CreditCard,
   ArrowRight
 } from 'lucide-react';
+
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -21,10 +33,11 @@ import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
 import { useAppointments } from '@/hooks/useAppointments';
 import { Skeleton } from '@/components/ui/skeleton';
-import { AppointmentStatus, AppointmentType } from '@/types/appoiment';
+import { AppointmentStatus } from "@/types/appoiment";
 
 export default function AppointmentsPage() {
   const { appointments, loading, getAllAppointments } = useAppointments();
+  const [selectedAppointment, setSelectedAppointment] = useState<any>(null);
 
   useEffect(() => {
     getAllAppointments();
@@ -33,21 +46,34 @@ export default function AppointmentsPage() {
 
 
   const getStatusBadge = (status: AppointmentStatus) => {
-    switch(status) {
-      case AppointmentStatus.SCHEDULED:
-        return <Badge className="bg-green-500">Scheduled</Badge>;
-      case AppointmentStatus.COMPLETED:
-        return <Badge className="bg-blue-500">Completed</Badge>;
-      case AppointmentStatus.CANCELLED:
-        return <Badge className="bg-red-500">Cancelled</Badge>;
-      case AppointmentStatus.NO_SHOW:
-        return <Badge className="bg-yellow-500">No Show</Badge>;
-      case AppointmentStatus.RESCHEDULED:
-        return <Badge className="bg-purple-500">Rescheduled</Badge>;
-      case AppointmentStatus.IN_PROGRESS:
-        return <Badge className="bg-orange-500">In Progress</Badge>;
+    switch (status) {
+      case AppointmentStatus.BOOKED:
+        return (
+          <Badge className="bg-yellow-500">
+            Booked
+          </Badge>
+        );
+
+      case AppointmentStatus.VERIFIED:
+        return (
+          <Badge className="bg-blue-500">
+            Verified
+          </Badge>
+        );
+
+      case AppointmentStatus.CONFIRMED:
+        return (
+          <Badge className="bg-green-500">
+            Confirmed
+          </Badge>
+        );
+
       default:
-        return <Badge className="bg-gray-500">{status}</Badge>;
+        return (
+          <Badge className="bg-gray-500">
+            {status}
+          </Badge>
+        );
     }
   };
 
@@ -131,74 +157,114 @@ export default function AppointmentsPage() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {appointments.map((appointment) => (
-              <Card key={appointment.id} className="overflow-hidden">
-                <div className={`h-2 ${appointment.type === AppointmentType.TELEMEDICINE ? 'bg-customTeal' : 'bg-customTeal'}`}></div>
+              <Card
+                key={appointment.appointmentId}
+                className="overflow-hidden"
+              >
+                <div className="h-2 bg-customTeal" />
+
                 <CardContent className="pt-6">
                   <div className="flex items-start gap-4">
+
+                    {/* Doctor Avatar */}
                     <Avatar className="h-12 w-12 border">
-                      <AvatarImage 
-                        src={typeof appointment.createdBy === 'string' ? appointment.createdBy : appointment.createdBy?.avatar || ""} 
-                        alt={typeof appointment.createdBy === 'string' ? 'User' : appointment.createdBy?.name || 'User'} 
-                      />
                       <AvatarFallback>
-                        {typeof appointment.createdBy === 'string' 
-                          ? 'U' 
-                          : appointment.createdBy?.name?.split(' ').map(n => n[0]).join('') || 'U'
-                        }
+                        {appointment.doctor?.username
+                          ?.charAt(0)
+                          ?.toUpperCase() || "D"}
                       </AvatarFallback>
                     </Avatar>
-                    
+
                     <div className="flex-1">
+
+                      {/* Doctor + Status */}
                       <div className="flex justify-between w-full mb-2">
                         <div>
-                          <h3 className="font-medium">{appointment.createdBy?.name}</h3>
-                          <p className="text-sm text-muted-foreground">{appointment.type}</p>
+                          <h3 className="font-medium">
+                            {appointment.doctor?.username || "Doctor"}
+                          </h3>
+
+                          <p className="text-sm text-muted-foreground">
+                            {appointment.appointmentType || "Appointment"}
+                          </p>
                         </div>
-                        {getStatusBadge(appointment.status || AppointmentStatus.SCHEDULED)}
+
+                        {getStatusBadge(appointment.status)}
                       </div>
-                      
+
+                      {/* Appointment Information */}
                       <div className="grid grid-cols-2 gap-y-2 text-sm mt-3">
+
+                        {/* Date */}
                         <div className="flex items-center">
                           <Calendar className="h-4 w-4 mr-2 text-gray-500" />
-                          <span>{format(new Date(appointment.createdAt), 'EEE, MMM d, yyyy')}</span>
+
+                          <span>
+                            {appointment.appointmentDate
+                              ? format(
+                                new Date(
+                                  `${appointment.appointmentDate}T00:00:00`
+                                ),
+                                "EEE, MMM d, yyyy"
+                              )
+                              : "N/A"}
+                          </span>
                         </div>
-                        
+
+                        {/* Time */}
                         <div className="flex items-center">
                           <Clock className="h-4 w-4 mr-2 text-gray-500" />
-                          <span>{appointment.startTime} - {appointment.endTime}</span>
+
+                          <span>
+                            {appointment.startTime} - {appointment.endTime}
+                          </span>
                         </div>
-                        
-                        <div className="flex items-center">
-                          {appointment.type === AppointmentType.TELEMEDICINE ? (
-                            <>
-                              <VideoIcon className="h-4 w-4 mr-2 text-customTeal" />
-                              <span>Video Call</span>
-                            </>
-                          ) : (
-                            <>
-                              <MapPin className="h-4 w-4 mr-2 text-customTeal" />
-                              <span>{appointment.roomId || 'Main Clinic'}</span>
-                            </>
-                          )}
-                        </div>
-                        
+
+                        {/* Doctor Mobile */}
                         <div className="flex items-center">
                           <User className="h-4 w-4 mr-2 text-gray-500" />
-                          <span>{appointment?.patient?.firstName || 'Self'}</span>
+
+                          <span>
+                            {appointment.doctor?.mobile || "N/A"}
+                          </span>
+                        </div>
+
+                        {/* Appointment For */}
+                        <div className="flex items-center">
+                          <User className="h-4 w-4 mr-2 text-gray-500" />
+
+                          <span>
+                            {appointment.appointmentFor?.type === "FAMILY"
+                              ? appointment.appointmentFor?.name ||
+                              "Family Member"
+                              : "Self"}
+                          </span>
                         </div>
                       </div>
-                      
+
+                      {/* Visit Reason */}
+                      {appointment.visitReason && (
+                        <p className="text-sm text-gray-500 mt-3">
+                          <span className="font-medium text-gray-700">
+                            Reason:
+                          </span>{" "}
+                          {appointment.visitReason}
+                        </p>
+                      )}
+
+                      {/* Actions */}
                       <div className="flex space-x-2 mt-4">
-                        {appointment.type === AppointmentType.TELEMEDICINE && (
-                          <Button size="sm" className="bg-customTeal hover:bg-customTeal/80">
-                            <VideoIcon className="h-4 w-4 mr-2" />
-                            Join Call
-                          </Button>
-                        )}
-                        <Button size="sm" variant="outline">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() =>
+                            setSelectedAppointment(appointment)
+                          }
+                        >
                           View Details
                         </Button>
                       </div>
+
                     </div>
                   </div>
                 </CardContent>
@@ -206,7 +272,7 @@ export default function AppointmentsPage() {
             ))}
           </div>
         )}
-        
+
         {!loading && appointments.length === 0 && (
           <Card className="p-6 py-8 text-center">
             <div className="flex flex-col items-center">
@@ -223,7 +289,7 @@ export default function AppointmentsPage() {
           </Card>
         )}
       </div>
-      
+
       {/* Quick Links */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <Card className="hover:border-primary cursor-pointer transition-colors">
@@ -237,7 +303,7 @@ export default function AppointmentsPage() {
             </div>
           </CardContent>
         </Card>
-        
+
         <Card className="hover:border-primary cursor-pointer transition-colors">
           <CardContent className="flex items-center gap-4 p-6">
             <div className="bg-customTeal/10 p-3 rounded-full">
@@ -249,7 +315,7 @@ export default function AppointmentsPage() {
             </div>
           </CardContent>
         </Card>
-        
+
         <Card className="hover:border-primary cursor-pointer transition-colors">
           <CardContent className="flex items-center gap-4 p-6">
             <div className="bg-customTeal/10 p-3 rounded-full">
@@ -262,6 +328,164 @@ export default function AppointmentsPage() {
           </CardContent>
         </Card>
       </div>
+
+      <Dialog
+        open={!!selectedAppointment}
+        onOpenChange={(open) => {
+          if (!open) {
+            setSelectedAppointment(null);
+          }
+        }}
+      >
+        <DialogContent className="sm:max-w-[550px]">
+          <DialogHeader>
+            <DialogTitle>Appointment Details</DialogTitle>
+            <DialogDescription>
+              View your appointment information.
+            </DialogDescription>
+          </DialogHeader>
+
+          {selectedAppointment && (
+            <div className="space-y-5">
+
+              {/* Doctor */}
+              <div>
+                <p className="text-sm text-gray-500 mb-1">
+                  Doctor
+                </p>
+
+                <p className="font-medium">
+                  {selectedAppointment.doctor?.username ||
+                    "Doctor"}
+                </p>
+
+                {selectedAppointment.doctor?.mobile && (
+                  <p className="text-sm text-gray-500">
+                    {selectedAppointment.doctor.mobile}
+                  </p>
+                )}
+              </div>
+
+              {/* Appointment For */}
+              <div className="flex items-start gap-3">
+                <User className="h-5 w-5 text-customTeal mt-0.5" />
+
+                <div>
+                  <p className="text-sm text-gray-500">
+                    Appointment For
+                  </p>
+
+                  <p className="font-medium">
+                    {selectedAppointment.appointmentFor?.type ===
+                      "FAMILY"
+                      ? selectedAppointment.appointmentFor?.name ||
+                      "Family Member"
+                      : "Myself"}
+                  </p>
+                </div>
+              </div>
+
+              {/* Date */}
+              <div className="flex items-start gap-3">
+                <Calendar className="h-5 w-5 text-customTeal mt-0.5" />
+
+                <div>
+                  <p className="text-sm text-gray-500">
+                    Appointment Date
+                  </p>
+
+                  <p className="font-medium">
+                    {selectedAppointment.appointmentDate
+                      ? format(
+                        new Date(
+                          `${selectedAppointment.appointmentDate}T00:00:00`
+                        ),
+                        "EEE, MMM d, yyyy"
+                      )
+                      : "N/A"}
+                  </p>
+                </div>
+              </div>
+
+              {/* Time */}
+              <div className="flex items-start gap-3">
+                <Clock className="h-5 w-5 text-customTeal mt-0.5" />
+
+                <div>
+                  <p className="text-sm text-gray-500">
+                    Time
+                  </p>
+
+                  <p className="font-medium">
+                    {selectedAppointment.startTime} -{" "}
+                    {selectedAppointment.endTime}
+                  </p>
+                </div>
+              </div>
+
+              {/* Appointment Type */}
+              <div>
+                <p className="text-sm text-gray-500">
+                  Appointment Type
+                </p>
+
+                <p className="font-medium">
+                  {selectedAppointment.appointmentType || "N/A"}
+                </p>
+              </div>
+
+              {/* Status */}
+              <div>
+                <p className="text-sm text-gray-500 mb-1">
+                  Status
+                </p>
+
+                {getStatusBadge(selectedAppointment.status)}
+              </div>
+
+              {/* Visit Reason */}
+              <div className="flex items-start gap-3">
+                <FileText className="h-5 w-5 text-customTeal mt-0.5" />
+
+                <div>
+                  <p className="text-sm text-gray-500">
+                    Reason for Visit
+                  </p>
+
+                  <p className="font-medium">
+                    {selectedAppointment.visitReason || "Not provided"}
+                  </p>
+                </div>
+              </div>
+
+              {/* Payment */}
+              <div className="flex items-start gap-3">
+                <CreditCard className="h-5 w-5 text-customTeal mt-0.5" />
+
+                <div>
+                  <p className="text-sm text-gray-500">
+                    Payment
+                  </p>
+
+                  <p className="font-medium">
+                    {selectedAppointment.payment?.status || "N/A"}
+                  </p>
+                </div>
+              </div>
+
+            </div>
+          )}
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setSelectedAppointment(null)}
+            >
+              Close
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

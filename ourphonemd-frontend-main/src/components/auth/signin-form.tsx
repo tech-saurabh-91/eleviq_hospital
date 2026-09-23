@@ -11,7 +11,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { FormProvider } from "react-hook-form";
 
 export default function SignInForm() {
-const { signInForm, isLoading, showPassword, setShowPassword, onSignIn } = useAuth();
+  const { signInForm, isLoading, showPassword, setShowPassword, onSignIn } = useAuth();
 
   return (
     <Card className="w-full border-0 shadow-none ">
@@ -19,10 +19,10 @@ const { signInForm, isLoading, showPassword, setShowPassword, onSignIn } = useAu
         <FormProvider {...signInForm}>
           <Form {...signInForm}>
             <form onSubmit={signInForm.handleSubmit(onSignIn)} className="space-y-4">
-              {/* Email Field */}
+              {/* Username / Mobile / Email Field */}
               <FormField
                 control={signInForm.control}
-                name="email"
+                name="identifier"
                 render={({ field }) => (
                   <FormItem>
                     <div className="flex border rounded-md overflow-hidden focus-within:ring-1 focus-within:ring-customTeal">
@@ -31,9 +31,9 @@ const { signInForm, isLoading, showPassword, setShowPassword, onSignIn } = useAu
                       </div>
                       <FormControl>
                         <Input
-                          placeholder="Email Address"
-                          type="email"
-                          autoComplete="email"
+                          placeholder="Username, Mobile or Email"
+                          type="text"
+                          autoComplete="username"
                           className="border-0 focus-visible:ring-0 h-11"
                           {...field}
                         />
@@ -115,18 +115,18 @@ const { signInForm, isLoading, showPassword, setShowPassword, onSignIn } = useAu
               {/* Bottom Links */}
               <div className="grid grid-cols-2 gap-4 pt-2">
                 <Link href="/forgot-password" className="w-full">
-                  <Button 
-                    type="button" 
-                    variant="outline" 
+                  <Button
+                    type="button"
+                    variant="outline"
                     className="w-full font-medium border-customTeal text-customTeal hover:bg-customTeal/5 hover:text-customTeal"
                   >
                     FORGOT PASSWORD
                   </Button>
                 </Link>
                 <Link href="/signup" className="w-full">
-                  <Button 
-                    type="button" 
-                    variant="outline" 
+                  <Button
+                    type="button"
+                    variant="outline"
                     className="w-full px-2 font-medium border-customTeal text-customTeal hover:bg-customTeal/5 hover:text-customTeal"
                   >
                     FIRST TIME REGISTRATION

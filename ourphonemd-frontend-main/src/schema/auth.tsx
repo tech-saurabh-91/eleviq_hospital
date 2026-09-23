@@ -1,11 +1,14 @@
 import { z } from "zod";
 
+// Sign in schema
 
-// sign in schema
-// Zod schema
 export const signInSchema = z.object({
-  email: z.string().email("Please enter a valid email address"),
+  identifier: z
+    .string()
+    .min(1, "Username, mobile or email is required"),
+
   password: z.string().min(1, "Password is required"),
+
   remember: z.boolean().optional(),
 });
 

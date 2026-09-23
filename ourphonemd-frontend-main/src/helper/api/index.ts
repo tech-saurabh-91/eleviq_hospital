@@ -33,9 +33,19 @@ export const PATIENT_INSURANCE_API = {
 
 export const PATIENT_APPOINTMENT_API = {
   CREATE: `${BASE_URL}/appointments`,
+
   GET_ALL: `${BASE_URL}/appointments`,
+
+  GET_SINGLE: (appointmentId: string) =>
+    `${BASE_URL}/appointments/${appointmentId}`,
+
   GET_DOCTORS: `${BASE_URL}/appointments/doctors`,
-  GET_AVAILABLE_APPOINTMENT_SLOTS: `${BASE_URL}/appointments/available-slots`,
+
+  GET_AVAILABLE_APPOINTMENT_SLOTS:
+    `${BASE_URL}/appointments/available-slots`,
+
+  RESCHEDULE: (appointmentId: string) =>
+    `${BASE_URL}/appointments/${appointmentId}/reschedule`,
 };
 
 

@@ -288,7 +288,8 @@ export default function NewAppointmentPage() {
         ...(values.patientType === "family" &&
           values.familyMemberId
           ? {
-            familyMember: values.familyMemberId,
+            familyMemberId:
+              values.familyMemberId,
           }
           : {}),
       };
@@ -367,8 +368,8 @@ export default function NewAppointmentPage() {
               <React.Fragment key={number}>
                 <div
                   className={`flex items-center justify-center w-8 h-8 rounded-full ${step >= number
-                      ? "bg-customTeal text-white"
-                      : "bg-gray-200 text-gray-500"
+                    ? "bg-customTeal text-white"
+                    : "bg-gray-200 text-gray-500"
                     }`}
                 >
                   {number}
@@ -377,8 +378,8 @@ export default function NewAppointmentPage() {
                 {number < 3 && (
                   <div
                     className={`h-1 flex-1 mx-2 ${step > number
-                        ? "bg-customTeal"
-                        : "bg-gray-200"
+                      ? "bg-customTeal"
+                      : "bg-gray-200"
                       }`}
                   />
                 )}

@@ -1,17 +1,12 @@
 import { z } from "zod";
-import { Patient } from "./patient";
-import { IUser } from "./User";
 import { appoimentFormSchema } from "@/schema/appoiment";
 
 
 // Define appointment status types
 export enum AppointmentStatus {
-  SCHEDULED = 'SCHEDULED',
-  COMPLETED = 'COMPLETED',
-  CANCELLED = 'CANCELLED',
-  NO_SHOW = 'NO_SHOW',
-  RESCHEDULED = 'RESCHEDULED',
-  IN_PROGRESS = 'IN_PROGRESS'
+  BOOKED = "BOOKED",
+  VERIFIED = "VERIFIED",
+  CONFIRMED = "CONFIRMED",
 }
 
 // Define appointment types
@@ -37,32 +32,50 @@ export interface CreateAppointmentRequest {
 
 // Appointment response interface
 export interface Appointment {
-  id: string;
-  patientId: string;
-  doctorId: string;
+  appointmentId: string;
+
+  doctor: {
+    doctorId: string;
+    username: string;
+    mobile: string;
+  } | null;
+
+  appointmentFor:
+    | {
+        type: "FAMILY";
+        familyMemberId?: string;
+        name?: string;
+        relationship?: string;
+      }
+    | {
+        type: "SELF";
+      };
+
+  appointmentType: string;
+
+  appointmentDate: string;
+
   startTime: string;
+
   endTime: string;
+
+  visitReason: string;
+
   status: AppointmentStatus;
-  type: AppointmentType;
-  reason: string;
-  createdAt: string;
-  updatedAt: string;
-  // Additional fields for UI
-  title?: string;
-  symptoms?: string;
-  medications?: string;
-  notes?: string;
-  patient?: Patient;
-  organizationId?: string;
-  createdById?: string;
-  createdBy?: IUser;
-  isDeleted?: boolean;
-  deletedAt?: string;
-  deletedById?: string;
-  deletedBy?: IUser;
-  resourceId?: string; // Doctor ID
-  roomId?: string;
-  recurringId?: string; // For recurring appointments
+
+  payment: {
+    status: string;
+    method?: string;
+    amount?: number;
+  };
+
+  verifiedAt?: string | null;
+
+  confirmedAt?: string | null;
+
+  createdAt?: string;
+
+  updatedAt?: string;
 }
 
 

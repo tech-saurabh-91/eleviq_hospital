@@ -5,6 +5,8 @@ import axios from "axios";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 
+import api from "@/helper/axios";
+
 import { signInSchema, signupSchema } from "@/schema/auth";
 
 import { TermsAndConditions } from "@/components/auth/steps/terms-and-conditions";
@@ -29,6 +31,61 @@ const ORGANIZATION_ID = "cmayaxw0g0001u3dsftfodhbh";
 // Temporary prototype value.
 // We will later fetch/use the actual active Terms record.
 const TERMS_ID = "6a97c26a0a63999554599771";
+
+const getDashboardRoute = (roles: string[]) => {
+  const normalizedRoles = roles.map((role) =>
+    role.toLowerCase().trim()
+  );
+
+  if (
+    normalizedRoles.includes("super-admin") ||
+    normalizedRoles.includes("hospital-admin")
+  ) {
+    return "/admin";
+  }
+
+  if (normalizedRoles.includes("doctor")) {
+    return "/doctor";
+  }
+
+  if (normalizedRoles.includes("patient")) {
+    return "/patient";
+  }
+
+  if (normalizedRoles.includes("receptionist")) {
+    return "/reception";
+  }
+
+  if (normalizedRoles.includes("nurse")) {
+    return "/nurse";
+  }
+
+  if (normalizedRoles.includes("pharmacist")) {
+    return "/pharmacy";
+  }
+
+  if (normalizedRoles.includes("lab-technician")) {
+    return "/laboratory";
+  }
+
+  if (normalizedRoles.includes("store-manager")) {
+    return "/store";
+  }
+
+  if (normalizedRoles.includes("purchase-officer")) {
+    return "/purchase";
+  }
+
+  if (normalizedRoles.includes("accountant")) {
+    return "/accountant";
+  }
+
+  if (normalizedRoles.includes("hr")) {
+    return "/hr";
+  }
+
+  return null;
+};
 
 const calculateAge = (dateOfBirth: string) => {
   const birthDate = new Date(`${dateOfBirth}T00:00:00`);
@@ -79,7 +136,7 @@ export const useAuth = () => {
   const signInForm = useForm<SignInFormValues>({
     resolver: zodResolver(signInSchema),
     defaultValues: {
-      email: "",
+      identifier: "",
       password: "",
       remember: false,
     },
@@ -148,7 +205,7 @@ export const useAuth = () => {
       const response = await axios.post<LoginResponse>(
         PATIENT_AUTH_API.LOGIN,
         {
-          identifier: data.email,
+          identifier: data.identifier.trim(),
           password: data.password,
         },
         {
@@ -170,20 +227,28 @@ export const useAuth = () => {
   };
 
   const onSignIn = async (data: SignInFormValues) => {
-    try {
-      const response = await handleLogin(data);
+  try {
+    const response = await handleLogin(data);
 
-      toast.success(`Welcome back, ${response.data.username}!`);
+    toast.success(`Welcome back, ${response.data.username}!`);
 
-      router.push("/patient");
-    } catch (error) {
-      console.error("Login failed:", error);
+    const roles = response.data?.roles ?? [];
 
-      toast.error(
-        error instanceof Error ? error.message : "Login failed"
-      );
+    const dashboardRoute = getDashboardRoute(roles);
+
+    if (!dashboardRoute) {
+      throw new Error("No dashboard configured for your role");
     }
-  };
+
+    router.push(dashboardRoute);
+  } catch (error) {
+    console.error("Login failed:", error);
+
+    toast.error(
+      error instanceof Error ? error.message : "Login failed"
+    );
+  }
+};
 
   /*
    * =========================
