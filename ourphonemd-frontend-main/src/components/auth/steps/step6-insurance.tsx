@@ -451,7 +451,6 @@ export function Step6Insurance({
             render={({
               field: {
                 onChange,
-                value,
                 ...field
               },
             }) => (
@@ -490,7 +489,6 @@ export function Step6Insurance({
             render={({
               field: {
                 onChange,
-                value,
                 ...field
               },
             }) => (

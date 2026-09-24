@@ -1,360 +1,774 @@
 "use client";
 
-import React, { useState } from 'react';
-import { useRouter, useParams, notFound } from 'next/navigation';
-import { ArrowLeft, Save } from 'lucide-react';
+import React, { useEffect, useState } from "react";
+import { useParams, useRouter } from "next/navigation";
+import { ArrowLeft, Save, Loader2 } from "lucide-react";
+import { toast } from "sonner";
+
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
-import { z } from "zod";
-import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { toast } from "sonner";
-import { editProfileformSchema } from '@/schema/auth';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Label } from "@/components/ui/label";
 
-// Sample data - in a real app, you would fetch this from an API
-const familyMembers = [
-  {
-    id: "1",
-    name: "John Smith",
-    relationship: "Father",
-    dateOfBirth: "1985-06-15",
-    gender: "Male",
-    phone: "555-123-4567",
-    email: "john.smith@example.com",
-    insurance: {
-      hasInsurance: true,
-      provider: "Aetna",
-      policyNumber: "AE7654321"
-    },
-    appointments: {
-      total: 5,
-      upcoming: 1,
-      past: 4
-    }
-  },
-  {
-    id: "2",
-    email: "emma@gmail.com",
-    name: "Emma Smith",
-    relationship: "Child",
-    dateOfBirth: "2015-03-22",
-    gender: "Female",
-    insurance: {
-      hasInsurance: false
-    },
-    appointments: {
-      total: 3,
-      upcoming: 0,
-      past: 3
-    }
-  }
-];
+import { PATIENT_FAMILY_API } from "@/helper/api";
+import api from "@/helper/axios";
 
-
-
-// Define relationship options
 const relationshipOptions = [
-  "Spouse", "Child", "Parent", "Sibling", "Grandparent", 
-  "Grandchild", "Partner", "Friend", "Other"
+  "father",
+  "mother",
+  "son",
+  "daughter",
+  "husband",
+  "wife",
+  "brother",
+  "sister",
+  "grandfather",
+  "grandmother",
+  "grandson",
+  "granddaughter",
+  "guardian",
+  "other",
 ];
+
+const formatRelationship = (value: string) => {
+  return value
+    .replace(/-/g, " ")
+    .replace(/\b\w/g, (char) => char.toUpperCase());
+};
+
+const convertBackendDateToInput = (date: string) => {
+  if (!date) return "";
+
+  const parts = date.split("/");
+
+  if (parts.length === 3) {
+    const [month, day, year] = parts;
+
+    return `${year}-${month.padStart(2, "0")}-${day.padStart(
+      2,
+      "0"
+    )}`;
+  }
+
+  return date;
+};
+
+const convertInputDateToBackend = (date: string) => {
+  if (!date) return "";
+
+  const [year, month, day] = date.split("-");
+
+  return `${month}/${day}/${year}`;
+};
 
 export default function EditFamilyMemberPage() {
   const router = useRouter();
   const params = useParams();
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  
-  // Find the member by ID
-  const member = familyMembers.find(m => m.id === params.id);
-  
-  // If member not found, show 404 page
-  if (!member) {
-    notFound();
-  }
-  
-  // Initialize the form with existing member data
-  const form = useForm<z.infer<typeof editProfileformSchema>>({
-    resolver: zodResolver(editProfileformSchema) as any,
-    defaultValues: {
-      name: member.name,
-      relationship: member.relationship.toLowerCase(),
-      dateOfBirth: member.dateOfBirth,
-      gender: member.gender.toLowerCase(),
-      email: member.email || "",
-      phone: member.phone || "",
-      hasInsurance: member.insurance?.hasInsurance || false,
-      insuranceProvider: member.insurance?.provider || "",
-      policyNumber: member.insurance?.policyNumber || "",
-    },
+
+  const familyMemberId = params?.id as string;
+
+  const [member, setMember] = useState<any>(null);
+
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+
+  const [formData, setFormData] = useState({
+    firstName: "",
+    middleName: "",
+    lastName: "",
+    relationship: "",
+    dateOfBirth: "",
+    gender: "",
+    email: "",
+    phone: "",
+    street: "",
+    city: "",
+    state: "",
+    zipCode: "",
+    insuranceCoverage: "patient",
   });
-  
-  // Form submission handler
-  async function onSubmit(values: z.infer<typeof editProfileformSchema>) {
-    setIsSubmitting(true);
-    
-    try {
-      // In a real application, this would make an API call to update the data
-      console.log(values);
-      
-      // Simulate API call delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Show success message
-      toast.success("Family member updated successfully", {
-        description: `${values.name}'s information has been updated.`,
-      });
-      
-      // Navigate back to family member details
-      router.push(`/patient/family-member/${params.id}`);
-    } catch {
-      toast.error("Failed to update family member", {
-        description: "Please try again.",
-      });
-    } finally {
-      setIsSubmitting(false);
+
+  useEffect(() => {
+    if (!familyMemberId) return;
+
+    const fetchFamilyMember = async () => {
+      try {
+        setLoading(true);
+        setError("");
+
+        const response = await api.get(
+          PATIENT_FAMILY_API.GET_SINGLE(familyMemberId)
+        );
+
+        const data = response.data?.data ?? response.data;
+
+        setMember(data);
+
+        setFormData({
+          firstName: data.firstName || "",
+          middleName: data.middleName || "",
+          lastName: data.lastName || "",
+          relationship: data.relationship || "",
+          dateOfBirth: convertBackendDateToInput(
+            data.dateOfBirth || ""
+          ),
+          gender: data.gender || "",
+          email: data.email || "",
+          phone: data.phone || "",
+          street: data.address?.street || "",
+          city: data.address?.city || "",
+          state: data.address?.state || "",
+          zipCode: data.address?.zipCode || "",
+          insuranceCoverage:
+            data.insuranceCoverage || "patient",
+        });
+      } catch (error: any) {
+        console.error(
+          "Error fetching family member:",
+          error
+        );
+
+        setError(
+          error?.response?.data?.message ||
+          "Failed to fetch family member"
+        );
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchFamilyMember();
+  }, [familyMemberId]);
+
+  const handleChange = (
+    field: string,
+    value: string
+  ) => {
+    setFormData((current) => ({
+      ...current,
+      [field]: value,
+    }));
+  };
+
+  const validateForm = () => {
+    const firstName = formData.firstName.trim();
+    const middleName = formData.middleName.trim();
+    const lastName = formData.lastName.trim();
+    const email = formData.email.trim();
+    const phone = formData.phone.trim();
+    const street = formData.street.trim();
+    const city = formData.city.trim();
+    const state = formData.state.trim();
+    const zipCode = formData.zipCode.trim();
+
+    if (!firstName) {
+      return "First name is required.";
     }
+
+    if (firstName.length > 50) {
+      return "First name must be 50 characters or less.";
+    }
+
+    if (!/^[A-Za-zÀ-ÿ\s'-]+$/.test(firstName)) {
+      return "First name contains invalid characters.";
+    }
+
+    if (middleName.length > 50) {
+      return "Middle name must be 50 characters or less.";
+    }
+
+    if (
+      middleName &&
+      !/^[A-Za-zÀ-ÿ\s'-]+$/.test(middleName)
+    ) {
+      return "Middle name contains invalid characters.";
+    }
+
+    if (!lastName) {
+      return "Last name is required.";
+    }
+
+    if (lastName.length > 50) {
+      return "Last name must be 50 characters or less.";
+    }
+
+    if (!/^[A-Za-zÀ-ÿ\s'-]+$/.test(lastName)) {
+      return "Last name contains invalid characters.";
+    }
+
+    if (!formData.relationship) {
+      return "Relationship is required.";
+    }
+
+    if (!formData.dateOfBirth) {
+      return "Date of birth is required.";
+    }
+
+    const selectedDate = new Date(formData.dateOfBirth);
+    const today = new Date();
+
+    if (selectedDate > today) {
+      return "Date of birth cannot be in the future.";
+    }
+
+    if (!formData.gender) {
+      return "Gender is required.";
+    }
+
+    if (!email) {
+      return "Email is required.";
+    }
+
+    if (
+      !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
+    ) {
+      return "Please enter a valid email address.";
+    }
+
+    if (!phone) {
+      return "Phone number is required.";
+    }
+
+    if (!/^\+?[0-9]{10,15}$/.test(phone)) {
+      return "Phone number must contain 10 to 15 digits.";
+    }
+
+    if (!street) {
+      return "Street address is required.";
+    }
+
+    if (street.length > 200) {
+      return "Street address must be 200 characters or less.";
+    }
+
+    if (!city) {
+      return "City is required.";
+    }
+
+    if (city.length > 100) {
+      return "City must be 100 characters or less.";
+    }
+
+    if (!state) {
+      return "State is required.";
+    }
+
+    if (state.length > 100) {
+      return "State must be 100 characters or less.";
+    }
+
+    if (!zipCode) {
+      return "PIN code is required.";
+    }
+
+    if (!/^[0-9]{6}$/.test(zipCode)) {
+      return "PIN code must contain 6 digits.";
+    }
+
+    return "";
+  };
+
+  const handleSubmit = async (
+    event: React.FormEvent
+  ) => {
+    event.preventDefault();
+
+    const validationError = validateForm();
+
+    if (validationError) {
+      toast.error(validationError);
+      return;
+    }
+
+    setSaving(true);
+
+    try {
+      const payload = {
+        firstName: formData.firstName.trim(),
+        middleName: formData.middleName.trim(),
+        lastName: formData.lastName.trim(),
+        relationship: formData.relationship,
+        dateOfBirth: convertInputDateToBackend(
+          formData.dateOfBirth
+        ),
+        gender: formData.gender,
+        email: formData.email.trim(),
+        phone: formData.phone.trim(),
+        address: {
+          street: formData.street.trim(),
+          city: formData.city.trim(),
+          state: formData.state.trim(),
+          zipCode: formData.zipCode.trim(),
+        },
+        insuranceCoverage:
+          formData.insuranceCoverage,
+      };
+
+      await api.patch(
+        PATIENT_FAMILY_API.UPDATE(familyMemberId),
+        payload
+      );
+
+      toast.success(
+        "Family member updated successfully."
+      );
+
+      router.push(
+        `/patient/family-member/${familyMemberId}`
+      );
+    } catch (error: any) {
+      console.error(
+        "Failed to update family member:",
+        error
+      );
+
+      toast.error(
+        error?.response?.data?.message ||
+        "Failed to update family member."
+      );
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="max-w-5xl mx-auto py-10 px-4">
+        <div className="flex items-center justify-center py-20">
+          <Loader2 className="h-6 w-6 animate-spin text-customTeal mr-2" />
+          <p className="text-gray-500">
+            Loading family member...
+          </p>
+        </div>
+      </div>
+    );
   }
 
-  // Handle cancel button
-  const handleCancel = () => {
-    router.back();
-  };
-  
-  return (
-    <div className="max-w-5xl m-auto  py-3 px-4">
-
-      <div className="mb-6">
-        <Button 
-          variant="ghost" 
-          className="text-customTeal mb-4" 
-          onClick={handleCancel}
+  if (error || !member) {
+    return (
+      <div className="max-w-5xl mx-auto py-10 px-4">
+        <Button
+          variant="ghost"
+          className="text-customTeal mb-4"
+          onClick={() =>
+            router.push("/patient/family-member")
+          }
         >
-          <ArrowLeft className="h-4 w-4 mr-2" /> Back
+          <ArrowLeft className="h-4 w-4 mr-2" />
+          Back
         </Button>
-        <h1 className="text-2xl font-bold text-customTeal">Edit Family Member</h1>
+
+        <Card>
+          <CardContent className="py-12 text-center">
+            <p className="text-red-500">
+              {error || "Family member not found"}
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  return (
+    <div className="max-w-5xl mx-auto py-6 px-4">
+      {/* Header */}
+      <div className="mb-6">
+        <Button
+          variant="ghost"
+          className="text-customTeal mb-4"
+          onClick={() =>
+            router.push(
+              `/patient/family-member/${familyMemberId}`
+            )
+          }
+        >
+          <ArrowLeft className="h-4 w-4 mr-2" />
+          Back to Profile
+        </Button>
+
+        <h1 className="text-2xl font-bold text-customTeal">
+          Edit Family Member
+        </h1>
+
         <p className="text-gray-500 mt-1">
-          Update {member.name}&apos;s information
+          Update {member.firstName} {member.lastName}&apos;s
+          information
         </p>
       </div>
-      
+
       <Card>
         <CardHeader>
           <CardTitle className="text-customTeal">
             Personal Information
           </CardTitle>
+
           <CardDescription>
-            Edit your family member&apos;s personal details below.
+            Update the family member&apos;s personal and
+            contact information.
           </CardDescription>
         </CardHeader>
+
         <CardContent>
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+          <form
+            onSubmit={handleSubmit}
+            className="space-y-8"
+          >
+            {/* Name */}
+            <div>
+              <h3 className="text-lg font-medium text-customTeal mb-4">
+                Basic Details
+              </h3>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div>
+                  <Label>First Name *</Label>
+                  <Input
+                    className="mt-2"
+                    value={formData.firstName}
+                    onChange={(e) =>
+                      handleChange(
+                        "firstName",
+                        e.target.value
+                      )
+                    }
+                  />
+                </div>
+
+                <div>
+                  <Label>Middle Name</Label>
+                  <Input
+                    className="mt-2"
+                    value={formData.middleName}
+                    onChange={(e) =>
+                      handleChange(
+                        "middleName",
+                        e.target.value
+                      )
+                    }
+                  />
+                </div>
+
+                <div>
+                  <Label>Last Name *</Label>
+                  <Input
+                    className="mt-2"
+                    value={formData.lastName}
+                    onChange={(e) =>
+                      handleChange(
+                        "lastName",
+                        e.target.value
+                      )
+                    }
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Relationship / DOB / Gender */}
+            <div>
+              <h3 className="text-lg font-medium text-customTeal mb-4">
+                Personal Details
+              </h3>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div>
+                  <Label>Relationship *</Label>
+
+                  <Select
+                    value={formData.relationship}
+                    onValueChange={(value) =>
+                      handleChange(
+                        "relationship",
+                        value
+                      )
+                    }
+                  >
+                    <SelectTrigger className="mt-2">
+                      <SelectValue placeholder="Select relationship" />
+                    </SelectTrigger>
+
+                    <SelectContent>
+                      {relationshipOptions.map(
+                        (relationship) => (
+                          <SelectItem
+                            key={relationship}
+                            value={relationship}
+                          >
+                            {formatRelationship(
+                              relationship
+                            )}
+                          </SelectItem>
+                        )
+                      )}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
+                  <Label>Date of Birth *</Label>
+
+                  <Input
+                    className="mt-2"
+                    type="date"
+                    value={formData.dateOfBirth}
+                    onChange={(e) =>
+                      handleChange(
+                        "dateOfBirth",
+                        e.target.value
+                      )
+                    }
+                  />
+                </div>
+
+                <div>
+                  <Label>Gender *</Label>
+
+                  <Select
+                    value={formData.gender}
+                    onValueChange={(value) =>
+                      handleChange("gender", value)
+                    }
+                  >
+                    <SelectTrigger className="mt-2">
+                      <SelectValue placeholder="Select gender" />
+                    </SelectTrigger>
+
+                    <SelectContent>
+                      <SelectItem value="male">
+                        Male
+                      </SelectItem>
+
+                      <SelectItem value="female">
+                        Female
+                      </SelectItem>
+
+                      <SelectItem value="other">
+                        Other
+                      </SelectItem>
+
+                      <SelectItem value="prefer-not-to-say">
+                        Prefer not to say
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            </div>
+
+            {/* Contact */}
+            <div>
+              <h3 className="text-lg font-medium text-customTeal mb-4">
+                Contact Information
+              </h3>
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {/* Name Field */}
-                <FormField
-                  control={form.control}
-                  name="name"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Full Name*</FormLabel>
-                      <FormControl>
-                        <Input placeholder="John Smith" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
-                {/* Relationship Field */}
-                <FormField
-                  control={form.control}
-                  name="relationship"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Relationship*</FormLabel>
-                      <Select 
-                        onValueChange={field.onChange} 
-                        defaultValue={field.value}
-                      >
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select relationship" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {relationshipOptions.map(option => (
-                            <SelectItem key={option} value={option.toLowerCase()}>
-                              {option}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
-                {/* Date of Birth Field */}
-                <FormField
-                  control={form.control}
-                  name="dateOfBirth"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Date of Birth*</FormLabel>
-                      <FormControl>
-                        <Input type="date" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
-                {/* Gender Field */}
-                <FormField
-                  control={form.control}
-                  name="gender"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Gender*</FormLabel>
-                      <Select 
-                        onValueChange={field.onChange} 
-                        defaultValue={field.value}
-                      >
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select gender" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value="male">Male</SelectItem>
-                          <SelectItem value="female">Female</SelectItem>
-                          <SelectItem value="other">Other</SelectItem>
-                          <SelectItem value="prefer-not-to-say">Prefer not to say</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
-                {/* Email Field */}
-                <FormField
-                  control={form.control}
-                  name="email"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Email Address (Optional)</FormLabel>
-                      <FormControl>
-                        <Input type="email" placeholder="email@example.com" {...field} />
-                      </FormControl>
-                      <FormDescription>
-                        For appointment notifications and reminders
-                      </FormDescription>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
-                {/* Phone Field */}
-                <FormField
-                  control={form.control}
-                  name="phone"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Phone Number (Optional)</FormLabel>
-                      <FormControl>
-                        <Input type="tel" placeholder="(555) 123-4567" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                <div>
+                  <Label>Email *</Label>
+
+                  <Input
+                    className="mt-2"
+                    type="email"
+                    value={formData.email}
+                    onChange={(e) =>
+                      handleChange(
+                        "email",
+                        e.target.value
+                      )
+                    }
+                  />
+                </div>
+
+                <div>
+                  <Label>Phone *</Label>
+
+                  <Input
+                    className="mt-2"
+                    type="tel"
+                    value={formData.phone}
+                    onChange={(e) =>
+                      handleChange(
+                        "phone",
+                        e.target.value
+                      )
+                    }
+                  />
+                </div>
               </div>
-              
-              {/* Insurance Section */}
-              <div className="border-t pt-6 mt-6">
-                <h3 className="text-lg font-medium text-customTeal mb-4">Insurance Information</h3>
-                
-                <FormField
-                  control={form.control}
-                  name="hasInsurance"
-                  render={({ field }) => (
-                    <FormItem className="flex flex-row items-start space-x-3 space-y-0 mb-4">
-                      <FormControl>
-                        <Checkbox
-                          checked={field.value}
-                          onCheckedChange={field.onChange}
-                        />
-                      </FormControl>
-                      <div className="space-y-1 leading-none">
-                        <FormLabel>
-                          This family member has health insurance
-                        </FormLabel>
-                      </div>
-                    </FormItem>
-                  )}
-                />
-                
-                {form.watch("hasInsurance") && (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
-                    <FormField
-                      control={form.control}
-                      name="insuranceProvider"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Insurance Provider</FormLabel>
-                          <FormControl>
-                            <Input placeholder="Aetna, Blue Cross, etc." {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    
-                    <FormField
-                      control={form.control}
-                      name="policyNumber"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Policy Number</FormLabel>
-                          <FormControl>
-                            <Input placeholder="Policy/Member ID" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
+            </div>
+
+            {/* Address */}
+            <div>
+              <h3 className="text-lg font-medium text-customTeal mb-4">
+                Address
+              </h3>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="md:col-span-2">
+                  <Label>Street *</Label>
+
+                  <Input
+                    className="mt-2"
+                    value={formData.street}
+                    onChange={(e) =>
+                      handleChange(
+                        "street",
+                        e.target.value
+                      )
+                    }
+                  />
+                </div>
+
+                <div>
+                  <Label>City *</Label>
+
+                  <Input
+                    className="mt-2"
+                    value={formData.city}
+                    onChange={(e) =>
+                      handleChange(
+                        "city",
+                        e.target.value
+                      )
+                    }
+                  />
+                </div>
+
+                <div>
+                  <Label>State *</Label>
+
+                  <Input
+                    className="mt-2"
+                    value={formData.state}
+                    onChange={(e) =>
+                      handleChange(
+                        "state",
+                        e.target.value
+                      )
+                    }
+                  />
+                </div>
+
+                <div>
+                  <Label>PIN Code *</Label>
+
+                  <Input
+                    className="mt-2"
+                    value={formData.zipCode}
+                    onChange={(e) =>
+                      handleChange(
+                        "zipCode",
+                        e.target.value
+                      )
+                    }
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Insurance */}
+            <div>
+              <h3 className="text-lg font-medium text-customTeal mb-4">
+                Insurance Coverage
+              </h3>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <button
+                  type="button"
+                  onClick={() =>
+                    handleChange(
+                      "insuranceCoverage",
+                      "patient"
+                    )
+                  }
+                  className={`border rounded-lg p-4 text-left transition ${formData.insuranceCoverage ===
+                    "patient"
+                    ? "border-customTeal bg-customTeal/5"
+                    : "border-gray-200"
+                    }`}
+                >
+                  <p className="font-medium">
+                    Primary Patient Insurance
+                  </p>
+
+                  <p className="text-sm text-gray-500 mt-1">
+                    Uses the primary patient&apos;s
+                    insurance.
+                  </p>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() =>
+                    handleChange(
+                      "insuranceCoverage",
+                      "own"
+                    )
+                  }
+                  className={`border rounded-lg p-4 text-left transition ${formData.insuranceCoverage === "own"
+                    ? "border-customTeal bg-customTeal/5"
+                    : "border-gray-200"
+                    }`}
+                >
+                  <p className="font-medium">
+                    Own Insurance
+                  </p>
+
+                  <p className="text-sm text-gray-500 mt-1">
+                    Family member has their own
+                    insurance.
+                  </p>
+                </button>
+              </div>
+            </div>
+
+            {/* Actions */}
+            <div className="flex justify-end gap-4 pt-6 border-t">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() =>
+                  router.push(
+                    `/patient/family-member/${familyMemberId}`
+                  )
+                }
+                disabled={saving}
+              >
+                Cancel
+              </Button>
+
+              <Button
+                type="submit"
+                className="bg-customTeal hover:bg-customTeal/90 text-white"
+                disabled={saving}
+              >
+                {saving ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Saving...
+                  </>
+                ) : (
+                  <>
+                    <Save className="h-4 w-4 mr-2" />
+                    Save Changes
+                  </>
                 )}
-              </div>
-              
-              <div className="flex justify-end space-x-4 pt-4">
-                <Button 
-                  type="button" 
-                  variant="outline" 
-                  onClick={handleCancel}
-                >
-                  Cancel
-                </Button>
-                <Button 
-                  type="submit" 
-                  className="bg-customTeal hover:bg-customTeal/90 text-white"
-                  disabled={isSubmitting}
-                >
-                  {isSubmitting ? (
-                    <>Saving...</>
-                  ) : (
-                    <>
-                      <Save className="h-4 w-4 mr-2" /> Save Changes
-                    </>
-                  )}
-                </Button>
-              </div>
-            </form>
-          </Form>
+              </Button>
+            </div>
+          </form>
         </CardContent>
       </Card>
     </div>

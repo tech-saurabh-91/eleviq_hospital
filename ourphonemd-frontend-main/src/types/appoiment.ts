@@ -41,15 +41,18 @@ export interface Appointment {
   } | null;
 
   appointmentFor:
-    | {
-        type: "FAMILY";
-        familyMemberId?: string;
-        name?: string;
-        relationship?: string;
-      }
-    | {
-        type: "SELF";
-      };
+  | {
+    type: "FAMILY";
+    familyMemberId?: string;
+    firstName?: string;
+    middleName?: string;
+    lastName?: string;
+    name?: string;
+    relationship?: string;
+  }
+  | {
+    type: "SELF";
+  };
 
   appointmentType: string;
 

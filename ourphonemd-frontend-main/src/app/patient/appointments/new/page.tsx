@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from "react";
 import { ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 
 import {
@@ -42,10 +42,6 @@ import { Label } from "@/components/ui/label";
 import { useForm } from "react-hook-form";
 
 import {
-  AppointmentType,
-} from "@/types/appoiment";
-
-import {
   useAppointments,
 } from "@/hooks/useAppointments";
 
@@ -77,6 +73,10 @@ const appointmentTypes = [
 
 export default function NewAppointmentPage() {
   const router = useRouter();
+
+  const searchParams = useSearchParams();
+  const preselectedFamilyMemberId =
+    searchParams.get("familyMemberId");
 
   const {
     createAppointment,
@@ -133,6 +133,14 @@ export default function NewAppointmentPage() {
         setDoctors(Array.isArray(doctorData) ? doctorData : []);
 
         await getAllFamilyMembers();
+
+        if (preselectedFamilyMemberId) {
+          form.setValue("patientType", "family");
+          form.setValue(
+            "familyMemberId",
+            preselectedFamilyMemberId
+          );
+        }
       } catch (error) {
         console.error("Error loading appointment data:", error);
         toast.error("Failed to load appointment information.");
@@ -142,7 +150,7 @@ export default function NewAppointmentPage() {
     };
 
     loadInitialData();
-  }, []);
+  }, [preselectedFamilyMemberId]);
 
   // --------------------------------------------------
   // Load slots when doctor + date are selected
@@ -423,7 +431,7 @@ export default function NewAppointmentPage() {
                           <RadioGroup
                             value={field.value}
                             onValueChange={field.onChange}
-                            className="grid grid-cols-1 md:grid-cols-3 gap-3"
+                            className="grid grid-cols-1 md:grid-cols-2 gap-3"
                           >
                             {appointmentTypes.map((type) => (
                               <div
@@ -534,6 +542,7 @@ export default function NewAppointmentPage() {
                                 familyMembers.map(
                                   (member: any) => {
                                     const id =
+                                      member.familyMemberId ||
                                       member.id ||
                                       member._id;
 
@@ -774,11 +783,11 @@ export default function NewAppointmentPage() {
                           : getFamilyMemberName(
                             familyMembers.find(
                               (member: any) =>
-                                (member.id ||
-                                  member._id) ===
-                                form.getValues(
-                                  "familyMemberId"
-                                )
+                                (
+                                  member.familyMemberId ||
+                                  member._id ||
+                                  member.id
+                                ) === form.getValues("familyMemberId")
                             ) || {}
                           )}
                       </p>

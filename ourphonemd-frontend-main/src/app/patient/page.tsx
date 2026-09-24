@@ -48,22 +48,19 @@ const PatientHome = () => {
   // =========================
 
   const upcomingAppointments = useMemo(() => {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    const now = new Date();
 
     return appointments.filter((appointment: any) => {
-      if (!appointment.appointmentDate) {
+      if (!appointment.appointmentDate || !appointment.startTime) {
         return false;
       }
 
-      const appointmentDate = new Date(
-        `${appointment.appointmentDate}T${
-          appointment.startTime || "00:00"
-        }`
+      const appointmentDateTime = new Date(
+        `${appointment.appointmentDate}T${appointment.startTime}`
       );
 
       return (
-        appointmentDate >= today &&
+        appointmentDateTime > now &&
         ["BOOKED", "VERIFIED", "CONFIRMED"].includes(
           appointment.status
         )

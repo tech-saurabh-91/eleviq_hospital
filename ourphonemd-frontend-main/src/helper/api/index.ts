@@ -50,9 +50,18 @@ export const PATIENT_APPOINTMENT_API = {
 
 
 export const PATIENT_FAMILY_API = {
-  GET_ALL: `${BASE_URL}/patient/family`,
-  GET_SINGLE: (id: any) => `${BASE_URL}/patient/family/${id}`,
-  ADD_FAMILY_MEMBER: `${BASE_URL}/patient/family`,
+  GET_ALL: `${BASE_URL}/patients/me/family-members`,
+
+  CREATE: `${BASE_URL}/patients/me/family-members`,
+
+  GET_SINGLE: (id: string) =>
+    `${BASE_URL}/patients/me/family-members/${id}`,
+
+  UPDATE: (id: string) =>
+    `${BASE_URL}/patients/me/family-members/${id}`,
+
+  DELETE: (id: string) =>
+    `${BASE_URL}/patients/me/family-members/${id}`,
 };
 
 

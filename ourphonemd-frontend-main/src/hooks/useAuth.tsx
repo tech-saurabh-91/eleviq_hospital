@@ -5,8 +5,6 @@ import axios from "axios";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 
-import api from "@/helper/axios";
-
 import { signInSchema, signupSchema } from "@/schema/auth";
 
 import { TermsAndConditions } from "@/components/auth/steps/terms-and-conditions";
@@ -178,10 +176,17 @@ export const useAuth = () => {
       state: "",
       zipCode: "",
 
+      insuranceType: "",
       insuranceProvider: "",
-      memberId: "",
+      insuranceId: "",
+      policyNumber: "",
       groupNumber: "",
-      policyHolderName: "",
+      ediPayer: "",
+      coverageType: "",
+      effectiveDate: "",
+      isPrimary: false,
+      frontCardImage: undefined,
+      backCardImage: undefined,
 
       verificationMethod: null,
 
@@ -227,28 +232,28 @@ export const useAuth = () => {
   };
 
   const onSignIn = async (data: SignInFormValues) => {
-  try {
-    const response = await handleLogin(data);
+    try {
+      const response = await handleLogin(data);
 
-    toast.success(`Welcome back, ${response.data.username}!`);
+      toast.success(`Welcome back, ${response.data.username}!`);
 
-    const roles = response.data?.roles ?? [];
+      const roles = response.data?.roles ?? [];
 
-    const dashboardRoute = getDashboardRoute(roles);
+      const dashboardRoute = getDashboardRoute(roles);
 
-    if (!dashboardRoute) {
-      throw new Error("No dashboard configured for your role");
+      if (!dashboardRoute) {
+        throw new Error("No dashboard configured for your role");
+      }
+
+      router.push(dashboardRoute);
+    } catch (error) {
+      console.error("Login failed:", error);
+
+      toast.error(
+        error instanceof Error ? error.message : "Login failed"
+      );
     }
-
-    router.push(dashboardRoute);
-  } catch (error) {
-    console.error("Login failed:", error);
-
-    toast.error(
-      error instanceof Error ? error.message : "Login failed"
-    );
-  }
-};
+  };
 
   /*
    * =========================
@@ -639,320 +644,323 @@ export const useAuth = () => {
       case 6:
         if (signupForm.getValues("hasInsuranceCard")) {
           isValid = await signupForm.trigger([
+            "insuranceType",
             "insuranceProvider",
-            "memberId",
+            "insuranceId",
+            "policyNumber",
             "groupNumber",
-            "policyHolderName",
+            "ediPayer",
+            "coverageType",
+            "effectiveDate",
           ]);
         } else {
           isValid = true;
         }
 
         break;
-    }
 
-    return isValid;
-  };
+        return isValid;
+    };
 
-  /*
-   * =========================
-   * NEXT STEP
-   * =========================
+    /*
+     * =========================
+     * NEXT STEP
+     * =========================
+     */
+
+    const handleNext = async () => {
+      try {
+        const isValid = await validateCurrentStep();
+
+        if (!isValid) {
+          return;
+        }
+
+        /*
+         * STEP 1
+         *
+         * Create backend registration session.
+         */
+        if (currentStep === 1) {
+          setIsLoading(true);
+
+          const id = await createRegistrationSession();
+
+          setRegistrationId(id);
+
+          setCurrentStep(2);
+
+          return;
+        }
+
+        /*
+   * STEP 2
+   *
+   * Complete prerequisites.
    */
+        if (currentStep === 2) {
+          if (!registrationId) {
+            throw new Error(
+              "Registration session not found"
+            );
+          }
 
-  const handleNext = async () => {
-    try {
-      const isValid = await validateCurrentStep();
+          setIsLoading(true);
 
-      if (!isValid) {
-        return;
-      }
+          await completePrerequisites(registrationId);
 
-      /*
-       * STEP 1
-       *
-       * Create backend registration session.
-       */
-      if (currentStep === 1) {
-        setIsLoading(true);
+          setCurrentStep(3);
 
-        const id = await createRegistrationSession();
-
-        setRegistrationId(id);
-
-        setCurrentStep(2);
-
-        return;
-      }
-
-      /*
- * STEP 2
- *
- * Complete prerequisites.
- */
-      if (currentStep === 2) {
-        if (!registrationId) {
-          throw new Error(
-            "Registration session not found"
-          );
+          return;
         }
 
-        setIsLoading(true);
+        /*
+   * STEP 3
+   *
+   * Complete age verification.
+   */
+        if (currentStep === 3) {
+          if (!registrationId) {
+            throw new Error(
+              "Registration session not found"
+            );
+          }
 
-        await completePrerequisites(registrationId);
+          setIsLoading(true);
 
-        setCurrentStep(3);
+          await completeAgeVerification(registrationId);
 
-        return;
-      }
+          setCurrentStep(4);
 
-      /*
- * STEP 3
- *
- * Complete age verification.
- */
-      if (currentStep === 3) {
-        if (!registrationId) {
-          throw new Error(
-            "Registration session not found"
-          );
+          return;
         }
 
-        setIsLoading(true);
+        /*
+         * STEP 4
+         *
+         * Create account.
+         */
+        if (currentStep === 4) {
+          if (!registrationId) {
+            throw new Error(
+              "Registration session not found"
+            );
+          }
 
-        await completeAgeVerification(registrationId);
+          setIsLoading(true);
 
-        setCurrentStep(4);
+          await createAccount(registrationId);
 
-        return;
-      }
+          setCurrentStep(5);
 
-      /*
-       * STEP 4
-       *
-       * Create account.
-       */
-      if (currentStep === 4) {
-        if (!registrationId) {
-          throw new Error(
-            "Registration session not found"
-          );
+          return;
         }
 
-        setIsLoading(true);
+        /*
+         * STEP 5
+         *
+         * Verify OTP.
+         */
+        if (currentStep === 5) {
+          if (!registrationId) {
+            throw new Error(
+              "Registration session not found"
+            );
+          }
 
-        await createAccount(registrationId);
+          setIsLoading(true);
 
-        setCurrentStep(5);
+          await verifyOtp(registrationId);
 
-        return;
-      }
-
-      /*
-       * STEP 5
-       *
-       * Verify OTP.
-       */
-      if (currentStep === 5) {
-        if (!registrationId) {
-          throw new Error(
-            "Registration session not found"
+          toast.success(
+            "Registration completed successfully!"
           );
+
+          setShowInsuranceModal(true);
+
+          return;
         }
 
-        setIsLoading(true);
+        /*
+         * STEP 6
+         *
+         * Insurance is currently UI-only.
+         *
+         * We will integrate this later.
+         */
+        if (currentStep === 6) {
+          toast.success(
+            "Registration completed successfully!"
+          );
 
-        await verifyOtp(registrationId);
-
-        toast.success(
-          "Registration completed successfully!"
+          router.push("/patient");
+        }
+      } catch (error: any) {
+        console.error(
+          "Registration step error:",
+          error
         );
 
-        setShowInsuranceModal(true);
+        const apiError = error?.response?.data as ApiError;
 
-        return;
-      }
-
-      /*
-       * STEP 6
-       *
-       * Insurance is currently UI-only.
-       *
-       * We will integrate this later.
-       */
-      if (currentStep === 6) {
-        toast.success(
-          "Registration completed successfully!"
+        toast.error(
+          apiError?.message ||
+          error?.message ||
+          "Registration failed"
         );
+      } finally {
+        setIsLoading(false);
+      }
+    };
 
+    /*
+     * =========================
+     * INSURANCE CHOICE
+     * =========================
+     *
+     * Kept temporarily so existing
+     * SignupForm doesn't break.
+     */
+
+    const handleInsuranceChoice = async (
+      hasInsurance: boolean
+    ) => {
+      setShowInsuranceModal(false);
+
+      signupForm.setValue(
+        "hasInsuranceCard",
+        hasInsurance
+      );
+
+      if (hasInsurance) {
+        setCurrentStep(6);
+      } else {
+        /*
+         * Registration is now already completed
+         * at OTP verification.
+         */
         router.push("/patient");
       }
-    } catch (error: any) {
-      console.error(
-        "Registration step error:",
-        error
-      );
+    };
 
-      const apiError = error?.response?.data as ApiError;
+    /*
+     * =========================
+     * SIGN UP SUBMIT
+     * =========================
+     */
 
-      toast.error(
-        apiError?.message ||
-        error?.message ||
-        "Registration failed"
-      );
-    } finally {
-      setIsLoading(false);
-    }
-  };
+    const onSignUp = async (
+    ) => {
+      try {
+        if (currentStep < totalSteps) {
+          await handleNext();
+        } else {
+          await handleNext();
+        }
+      } catch (error) {
+        console.error(
+          "Signup error:",
+          error
+        );
 
-  /*
-   * =========================
-   * INSURANCE CHOICE
-   * =========================
-   *
-   * Kept temporarily so existing
-   * SignupForm doesn't break.
-   */
-
-  const handleInsuranceChoice = async (
-    hasInsurance: boolean
-  ) => {
-    setShowInsuranceModal(false);
-
-    signupForm.setValue(
-      "hasInsuranceCard",
-      hasInsurance
-    );
-
-    if (hasInsurance) {
-      setCurrentStep(6);
-    } else {
-      /*
-       * Registration is now already completed
-       * at OTP verification.
-       */
-      router.push("/patient");
-    }
-  };
-
-  /*
-   * =========================
-   * SIGN UP SUBMIT
-   * =========================
-   */
-
-  const onSignUp = async (
-    data: SignupFormValues
-  ) => {
-    try {
-      if (currentStep < totalSteps) {
-        await handleNext();
-      } else {
-        await handleNext();
+        toast.error(
+          error instanceof Error
+            ? error.message
+            : "Signup failed"
+        );
       }
-    } catch (error) {
-      console.error(
-        "Signup error:",
-        error
-      );
+    };
 
-      toast.error(
-        error instanceof Error
-          ? error.message
-          : "Signup failed"
-      );
-    }
+    /*
+     * =========================
+     * PREVIOUS
+     * =========================
+     */
+
+    const goToPreviousStep = () => {
+      if (currentStep > 1) {
+        setCurrentStep(currentStep - 1);
+      }
+    };
+
+    /*
+     * =========================
+     * STEP RENDERING
+     * =========================
+     */
+
+    const renderStep = () => {
+      switch (currentStep) {
+        case 1:
+          return <TermsAndConditions />;
+
+        case 2:
+          return <Step2Prerequisites />;
+
+        case 3:
+          return <Step3AgeVerification />;
+
+        case 4:
+          return <Step4ProfileCreation />;
+
+        case 5:
+          return (
+            <Step5Verification
+              onSendVerificationCode={sendVerificationCode}
+              onResendVerificationCode={resendOtp}
+              registrationId={registrationId}
+            />
+          );
+
+        case 6:
+          return (
+            <Step6Insurance registrationId={registrationId} />
+          );
+
+        default:
+          return <TermsAndConditions />;
+      }
+    };
+
+    const stepTitles = [
+      "Terms & Conditions",
+      "Prerequisites",
+      "Age Verification",
+      "Account Creation",
+      "Verification",
+      "Insurance",
+    ];
+
+    return {
+      isLoading,
+      router,
+
+      signInForm,
+      showPassword,
+      setShowPassword,
+      handleLogin,
+      onSignIn,
+
+      signupForm,
+      currentStep,
+      setCurrentStep,
+      totalSteps,
+
+      registrationId,
+
+      showInsuranceModal,
+      setShowInsuranceModal,
+
+      handleNext,
+      onSignUp,
+      goToPreviousStep,
+
+      stepTitles,
+      handleInsuranceChoice,
+      validateCurrentStep,
+      renderStep,
+
+      resendOtp,
+    };
   };
-
-  /*
-   * =========================
-   * PREVIOUS
-   * =========================
-   */
-
-  const goToPreviousStep = () => {
-    if (currentStep > 1) {
-      setCurrentStep(currentStep - 1);
-    }
-  };
-
-  /*
-   * =========================
-   * STEP RENDERING
-   * =========================
-   */
-
-  const renderStep = () => {
-    switch (currentStep) {
-      case 1:
-        return <TermsAndConditions />;
-
-      case 2:
-        return <Step2Prerequisites />;
-
-      case 3:
-        return <Step3AgeVerification />;
-
-      case 4:
-        return <Step4ProfileCreation />;
-
-      case 5:
-        return (
-          <Step5Verification
-            onSendVerificationCode={sendVerificationCode}
-            onResendVerificationCode={resendOtp}
-            registrationId={registrationId}
-          />
-        );
-
-      case 6:
-        return (
-          <Step6Insurance registrationId={registrationId} />
-        );
-
-      default:
-        return <TermsAndConditions />;
-    }
-  };
-
-  const stepTitles = [
-    "Terms & Conditions",
-    "Prerequisites",
-    "Age Verification",
-    "Account Creation",
-    "Verification",
-    "Insurance",
-  ];
-
-  return {
-    isLoading,
-    router,
-
-    signInForm,
-    showPassword,
-    setShowPassword,
-    handleLogin,
-    onSignIn,
-
-    signupForm,
-    currentStep,
-    setCurrentStep,
-    totalSteps,
-
-    registrationId,
-
-    showInsuranceModal,
-    setShowInsuranceModal,
-
-    handleNext,
-    onSignUp,
-    goToPreviousStep,
-
-    stepTitles,
-    handleInsuranceChoice,
-    validateCurrentStep,
-    renderStep,
-
-    resendOtp,
-  };
-};
+}

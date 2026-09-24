@@ -1,320 +1,665 @@
 "use client";
 
-import React, { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { ArrowLeft, Save, UserPlus } from 'lucide-react';
+import React, { useState } from "react";
+import { ArrowLeft, Save, UserPlus } from "lucide-react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
-import { z } from "zod";
-import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { toast } from 'sonner';
+import { useFamilyMember } from "@/hooks/useFamilyMember";
 
-
-// Form validation schema
-const formSchema = z.object({
-  name: z.string().min(2, { message: "Name must be at least 2 characters." }),
-  relationship: z.string({ required_error: "Please select a relationship." }),
-  dateOfBirth: z.string({ required_error: "Date of birth is required." }),
-  gender: z.string({ required_error: "Please select a gender." }),
-  email: z.string().email({ message: "Invalid email address." }).optional().or(z.literal("")),
-  phone: z.string().optional().or(z.literal("")),
-  hasInsurance: z.boolean().default(false),
-  insuranceProvider: z.string().optional().or(z.literal("")),
-  policyNumber: z.string().optional().or(z.literal("")),
-});
-
-// Define relationship options
 const relationshipOptions = [
-  "Spouse", "Child", "Parent", "Sibling", "Grandparent", 
-  "Grandchild", "Partner", "Friend", "Other"
+  { value: "father", label: "Father" },
+  { value: "mother", label: "Mother" },
+  { value: "son", label: "Son" },
+  { value: "daughter", label: "Daughter" },
+  { value: "husband", label: "Husband" },
+  { value: "wife", label: "Wife" },
+  { value: "brother", label: "Brother" },
+  { value: "sister", label: "Sister" },
+  { value: "grandfather", label: "Grandfather" },
+  { value: "grandmother", label: "Grandmother" },
+  { value: "grandson", label: "Grandson" },
+  { value: "granddaughter", label: "Granddaughter" },
+  { value: "guardian", label: "Guardian" },
+  { value: "other", label: "Other" },
 ];
+
+const genderOptions = [
+  { value: "male", label: "Male" },
+  { value: "female", label: "Female" },
+  { value: "other", label: "Other" },
+];
+
+const initialForm = {
+  firstName: "",
+  middleName: "",
+  lastName: "",
+  relationship: "",
+  dateOfBirth: "",
+  gender: "",
+  email: "",
+  phone: "",
+
+  street: "",
+  city: "",
+  state: "",
+  zipCode: "",
+
+  insuranceCoverage: "patient",
+};
 
 export default function AddFamilyMemberPage() {
   const router = useRouter();
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  
-  // Initialize the form
-  const form = useForm<z.infer<typeof formSchema>>({
-    resolver: zodResolver(formSchema) as any,
-    defaultValues: {
-      name: "",
-      relationship: "",
-      dateOfBirth: "",
-      gender: "",
-      email: "",
-      phone: "",
-      hasInsurance: false,
-      insuranceProvider: "",
-      policyNumber: "",
-    },
-  });
-  
-  // Form submission handler
-  async function onSubmit(values: z.infer<typeof formSchema>) {
-    setIsSubmitting(true);
-    
-    try {
-      // In a real application, this would make an API call to save the data
-      console.log(values);
-      
-      // Simulate API call delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Show success message
-      toast.success("Family member added successfully");
-      
-      // Navigate back to family members list
-      router.push("/patient/family-member");
-    } catch{
-      toast.error("Failed to add family member. Please try again.");
-    } finally {
-      setIsSubmitting(false);
-    }
-  }
 
-  // Handle cancel button
-  const handleCancel = () => {
-    router.back();
+  const { createFamilyMember, loading } = useFamilyMember();
+
+  const [form, setForm] = useState(initialForm);
+  const [error, setError] = useState("");
+
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+  ) => {
+    const { name, value } = e.target;
+
+    setForm((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
   };
-  
+
+  const formatDateForBackend = (value: string) => {
+    if (!value) return "";
+
+    const [year, month, day] = value.split("-");
+
+    if (!year || !month || !day) {
+      return "";
+    }
+
+    return `${month}/${day}/${year}`;
+  };
+
+  const validateForm = () => {
+    const firstName = form.firstName.trim();
+    const middleName = form.middleName.trim();
+    const lastName = form.lastName.trim();
+    const email = form.email.trim();
+    const phone = form.phone.trim();
+    const street = form.street.trim();
+    const city = form.city.trim();
+    const state = form.state.trim();
+    const zipCode = form.zipCode.trim();
+
+    if (!firstName) {
+      return "First name is required";
+    }
+
+    if (firstName.length > 50) {
+      return "First name must be 50 characters or less";
+    }
+
+    if (!/^[A-Za-zÀ-ÿ\s'-]+$/.test(firstName)) {
+      return "First name contains invalid characters";
+    }
+
+    if (middleName.length > 50) {
+      return "Middle name must be 50 characters or less";
+    }
+
+    if (
+      middleName &&
+      !/^[A-Za-zÀ-ÿ\s'-]+$/.test(middleName)
+    ) {
+      return "Middle name contains invalid characters";
+    }
+
+    if (!lastName) {
+      return "Last name is required";
+    }
+
+    if (lastName.length > 50) {
+      return "Last name must be 50 characters or less";
+    }
+
+    if (!/^[A-Za-zÀ-ÿ\s'-]+$/.test(lastName)) {
+      return "Last name contains invalid characters";
+    }
+
+    if (!form.relationship) {
+      return "Relationship is required";
+    }
+
+    if (!form.dateOfBirth) {
+      return "Date of birth is required";
+    }
+
+    const selectedDate = new Date(form.dateOfBirth);
+    const today = new Date();
+
+    if (selectedDate > today) {
+      return "Date of birth cannot be in the future";
+    }
+
+    if (!form.gender) {
+      return "Gender is required";
+    }
+
+    if (!email) {
+      return "Email is required";
+    }
+
+    if (
+      !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
+    ) {
+      return "Please enter a valid email address";
+    }
+
+    if (!phone) {
+      return "Phone number is required";
+    }
+
+    if (!/^\+?[0-9]{10,15}$/.test(phone)) {
+      return "Phone number must contain 10 to 15 digits";
+    }
+
+    if (!street) {
+      return "Street address is required";
+    }
+
+    if (street.length > 200) {
+      return "Street address must be 200 characters or less";
+    }
+
+    if (!city) {
+      return "City is required";
+    }
+
+    if (city.length > 100) {
+      return "City must be 100 characters or less";
+    }
+
+    if (!state) {
+      return "State is required";
+    }
+
+    if (state.length > 100) {
+      return "State must be 100 characters or less";
+    }
+
+    if (!zipCode) {
+      return "PIN code is required";
+    }
+
+    if (!/^[0-9]{4,10}$/.test(zipCode)) {
+      return "PIN code must contain 6 digits";
+    }
+
+    return "";
+  };
+
+  const handleSubmit = async (
+    e: React.FormEvent<HTMLFormElement>
+  ) => {
+    e.preventDefault();
+
+    setError("");
+
+    const validationError = validateForm();
+
+    if (validationError) {
+      setError(validationError);
+      return;
+    }
+
+    try {
+      const payload = {
+        firstName: form.firstName.trim(),
+
+        ...(form.middleName.trim()
+          ? {
+            middleName: form.middleName.trim(),
+          }
+          : {}),
+
+        lastName: form.lastName.trim(),
+
+        relationship: form.relationship,
+
+        dateOfBirth: formatDateForBackend(
+          form.dateOfBirth
+        ),
+
+        gender: form.gender,
+
+        email: form.email.trim().toLowerCase(),
+
+        phone: form.phone.trim(),
+
+        address: {
+          street: form.street.trim(),
+          city: form.city.trim(),
+          state: form.state.trim(),
+          zipCode: form.zipCode.trim(),
+        },
+
+        insuranceCoverage:
+          form.insuranceCoverage,
+      };
+
+      console.log(
+        "Creating family member:",
+        payload
+      );
+
+      await createFamilyMember(payload);
+
+      router.push("/patient/family-member");
+    } catch (error: any) {
+      console.error(
+        "Error creating family member:",
+        error
+      );
+
+      const backendMessage =
+        error?.response?.data?.message;
+
+      setError(
+        backendMessage ||
+        "Failed to create family member. Please try again."
+      );
+    }
+  };
+
   return (
-    <div className="max-w-3xl mx-auto py-6">
+    <div className="w-full max-w-4xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
+      {/* Back */}
+      <Link
+        href="/patient/family-member"
+        className="inline-flex items-center gap-2 text-sm text-customTeal hover:underline mb-5"
+      >
+        <ArrowLeft className="h-4 w-4" />
+        Back to Family Members
+      </Link>
+
+      {/* Header */}
       <div className="mb-6">
-        <Button 
-          variant="ghost" 
-          className="text-customTeal mb-4" 
-          onClick={handleCancel}
-        >
-          <ArrowLeft className="h-4 w-4 mr-2" /> Back to Family Members
-        </Button>
-        <h1 className="text-2xl font-bold text-customTeal">Add Family Member</h1>
-        <p className="text-gray-500 mt-1">
-          Add a family member to your account to manage their appointments and medical records.
-        </p>
+        <div className="flex items-center gap-3">
+          <div className="bg-customTeal/10 p-2.5 rounded-full">
+            <UserPlus className="h-5 w-5 text-customTeal" />
+          </div>
+
+          <div>
+            <h1 className="text-2xl sm:text-3xl font-bold text-customTeal">
+              Add Family Member
+            </h1>
+
+            <p className="text-sm text-gray-500 mt-1">
+              Add a family member to your account to manage
+              their appointments and medical records.
+            </p>
+          </div>
+        </div>
       </div>
-      
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center text-customTeal">
-            <UserPlus className="h-5 w-5 mr-2" /> Personal Information
-          </CardTitle>
-          <CardDescription>
-            Enter your family members personal details below.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {/* Name Field */}
-                <FormField
-                  control={form.control}
-                  name="name"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Full Name*</FormLabel>
-                      <FormControl>
-                        <Input placeholder="John Smith" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
+
+      <form onSubmit={handleSubmit}>
+        <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+          {/* Personal Information */}
+          <section className="p-5 sm:p-6">
+            <h2 className="text-lg font-semibold text-customTeal mb-1">
+              Personal Information
+            </h2>
+
+            <p className="text-sm text-gray-500 mb-6">
+              Enter the family members personal details.
+            </p>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+              {/* First Name */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                  First Name *
+                </label>
+
+                <Input
+                  name="firstName"
+                  value={form.firstName}
+                  onChange={handleChange}
+                  placeholder="Enter first Name"
                 />
-                
-                {/* Relationship Field */}
-                <FormField
-                  control={form.control}
+              </div>
+
+              {/* Middle Name */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                  Middle Name
+                </label>
+
+                <Input
+                  name="middleName"
+                  value={form.middleName}
+                  onChange={handleChange}
+                  placeholder="Enter middle Name"
+                />
+              </div>
+
+              {/* Last Name */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                  Last Name *
+                </label>
+
+                <Input
+                  name="lastName"
+                  value={form.lastName}
+                  onChange={handleChange}
+                  placeholder="Enter last Name"
+                />
+              </div>
+
+              {/* Relationship */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                  Relationship *
+                </label>
+
+                <select
                   name="relationship"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Relationship*</FormLabel>
-                      <Select 
-                        onValueChange={field.onChange} 
-                        defaultValue={field.value}
+                  value={form.relationship}
+                  onChange={handleChange}
+                  className="w-full h-10 rounded-md border border-input bg-background px-3 text-sm"
+                >
+                  <option value="">
+                    Select relationship
+                  </option>
+
+                  {relationshipOptions.map(
+                    (relationship) => (
+                      <option
+                        key={relationship.value}
+                        value={relationship.value}
                       >
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select relationship" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {relationshipOptions.map(option => (
-                            <SelectItem key={option} value={option.toLowerCase()}>
-                              {option}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
+                        {relationship.label}
+                      </option>
+                    )
                   )}
-                />
-                
-                {/* Date of Birth Field */}
-                <FormField
-                  control={form.control}
+                </select>
+              </div>
+
+              {/* DOB */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                  Date of Birth *
+                </label>
+
+                <Input
+                  type="date"
                   name="dateOfBirth"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Date of Birth*</FormLabel>
-                      <FormControl>
-                        <Input type="date" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
+                  value={form.dateOfBirth}
+                  onChange={handleChange}
                 />
-                
-                {/* Gender Field */}
-                <FormField
-                  control={form.control}
+              </div>
+
+              {/* Gender */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                  Gender *
+                </label>
+
+                <select
                   name="gender"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Gender*</FormLabel>
-                      <Select 
-                        onValueChange={field.onChange} 
-                        defaultValue={field.value}
-                      >
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select gender" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value="male">Male</SelectItem>
-                          <SelectItem value="female">Female</SelectItem>
-                          <SelectItem value="other">Other</SelectItem>
-                          <SelectItem value="prefer-not-to-say">Prefer not to say</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
-                {/* Email Field */}
-                <FormField
-                  control={form.control}
+                  value={form.gender}
+                  onChange={handleChange}
+                  className="w-full h-10 rounded-md border border-input bg-background px-3 text-sm"
+                >
+                  <option value="">
+                    Select gender
+                  </option>
+
+                  {genderOptions.map((gender) => (
+                    <option
+                      key={gender.value}
+                      value={gender.value}
+                    >
+                      {gender.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Email */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                  Email Address *
+                </label>
+
+                <Input
+                  type="email"
                   name="email"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Email Address (Optional)</FormLabel>
-                      <FormControl>
-                        <Input type="email" placeholder="email@example.com" {...field} />
-                      </FormControl>
-                      <FormDescription>
-                        For appointment notifications and reminders
-                      </FormDescription>
-                      <FormMessage />
-                    </FormItem>
-                  )}
+                  value={form.email}
+                  onChange={handleChange}
+                  placeholder="example@email.com"
                 />
-                
-                {/* Phone Field */}
-                <FormField
-                  control={form.control}
+
+                <p className="text-xs text-gray-500 mt-1.5">
+                  Used for appointment notifications and reminders.
+                </p>
+              </div>
+
+              {/* Phone */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                  Phone Number *
+                </label>
+
+                <Input
+                  type="tel"
                   name="phone"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Phone Number (Optional)</FormLabel>
-                      <FormControl>
-                        <Input type="tel" placeholder="(555) 123-4567" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
+                  value={form.phone}
+                  onChange={handleChange}
+                  placeholder="Enter phone number"
+                  maxLength={16}
                 />
               </div>
-              
-              {/* Insurance Section */}
-              <div className="border-t pt-6 mt-6">
-                <h3 className="text-lg font-medium text-customTeal mb-4">Insurance Information</h3>
-                
-                <FormField
-                  control={form.control}
-                  name="hasInsurance"
-                  render={({ field }) => (
-                    <FormItem className="flex flex-row items-start space-x-3 space-y-0 mb-4">
-                      <FormControl>
-                        <Checkbox
-                          checked={field.value}
-                          onCheckedChange={field.onChange}
-                        />
-                      </FormControl>
-                      <div className="space-y-1 leading-none">
-                        <FormLabel>
-                          This family member has health insurance
-                        </FormLabel>
-                      </div>
-                    </FormItem>
-                  )}
+            </div>
+          </section>
+
+          <div className="border-t" />
+
+          {/* Address */}
+          <section className="p-5 sm:p-6">
+            <h2 className="text-lg font-semibold text-customTeal mb-1">
+              Address
+            </h2>
+
+            <p className="text-sm text-gray-500 mb-6">
+              Enter the family members residential address.
+            </p>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+              {/* Street */}
+              <div className="md:col-span-2">
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                  Street Address *
+                </label>
+
+                <Input
+                  name="street"
+                  value={form.street}
+                  onChange={handleChange}
+                  placeholder="Enter street address"
+                  maxLength={200}
                 />
-                
-                {form.watch("hasInsurance") && (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
-                    <FormField
-                      control={form.control}
-                      name="insuranceProvider"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Insurance Provider</FormLabel>
-                          <FormControl>
-                            <Input placeholder="Aetna, Blue Cross, etc." {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    
-                    <FormField
-                      control={form.control}
-                      name="policyNumber"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Policy Number</FormLabel>
-                          <FormControl>
-                            <Input placeholder="Policy/Member ID" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
+              </div>
+
+              {/* City */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                  City *
+                </label>
+
+                <Input
+                  name="city"
+                  value={form.city}
+                  onChange={handleChange}
+                  placeholder="Enter city"
+                  maxLength={100}
+                />
+              </div>
+
+              {/* State */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                  State *
+                </label>
+
+                <Input
+                  name="state"
+                  value={form.state}
+                  onChange={handleChange}
+                  placeholder="Enter state"
+                  maxLength={100}
+                />
+              </div>
+
+              {/* ZIP */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                  PIN Code *
+                </label>
+
+                <Input
+                  name="zipCode"
+                  value={form.zipCode}
+                  onChange={handleChange}
+                  placeholder="Enter pincode"
+                  maxLength={6}
+                  inputMode="numeric"
+                />
+              </div>
+            </div>
+          </section>
+
+          <div className="border-t" />
+
+          {/* Insurance */}
+          <section className="p-5 sm:p-6">
+            <h2 className="text-lg font-semibold text-customTeal mb-1">
+              Insurance Coverage
+            </h2>
+
+            <p className="text-sm text-gray-500 mb-5">
+              Choose how this family member will be covered.
+            </p>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {/* Patient insurance */}
+              <label
+                className={`cursor-pointer rounded-lg border p-4 transition-colors ${form.insuranceCoverage === "patient"
+                  ? "border-customTeal bg-customTeal/5"
+                  : "border-gray-200 hover:border-gray-300"
+                  }`}
+              >
+                <div className="flex items-start gap-3">
+                  <input
+                    type="radio"
+                    name="insuranceCoverage"
+                    value="patient"
+                    checked={
+                      form.insuranceCoverage ===
+                      "patient"
+                    }
+                    onChange={handleChange}
+                    className="mt-1"
+                  />
+
+                  <div>
+                    <p className="font-medium text-gray-900">
+                      Use Primary Patients Insurance
+                    </p>
+
+                    <p className="text-sm text-gray-500 mt-1">
+                      This family member will use the primary
+                      patients insurance coverage.
+                    </p>
                   </div>
-                )}
-              </div>
-              
-              <div className="flex justify-end space-x-4 pt-4">
-                <Button 
-                  type="button" 
-                  variant="outline" 
-                  onClick={handleCancel}
-                >
-                  Cancel
-                </Button>
-                <Button 
-                  type="submit" 
-                  className="bg-customTeal hover:bg-customTeal/90 text-white"
-                  disabled={isSubmitting}
-                >
-                  {isSubmitting ? (
-                    <>Saving...</>
-                  ) : (
-                    <>
-                      <Save className="h-4 w-4 mr-2" /> Save Family Member
-                    </>
-                  )}
-                </Button>
-              </div>
-            </form>
-          </Form>
-        </CardContent>
-      </Card>
+                </div>
+              </label>
+
+              {/* Own insurance */}
+              <label
+                className={`cursor-pointer rounded-lg border p-4 transition-colors ${form.insuranceCoverage === "own"
+                  ? "border-customTeal bg-customTeal/5"
+                  : "border-gray-200 hover:border-gray-300"
+                  }`}
+              >
+                <div className="flex items-start gap-3">
+                  <input
+                    type="radio"
+                    name="insuranceCoverage"
+                    value="own"
+                    checked={
+                      form.insuranceCoverage === "own"
+                    }
+                    onChange={handleChange}
+                    className="mt-1"
+                  />
+
+                  <div>
+                    <p className="font-medium text-gray-900">
+                      Use Own Insurance
+                    </p>
+
+                    <p className="text-sm text-gray-500 mt-1">
+                      This family member will have their own
+                      insurance coverage.
+                    </p>
+                  </div>
+                </div>
+              </label>
+            </div>
+          </section>
+
+          {/* Error */}
+          {error && (
+            <div className="mx-5 sm:mx-6 mb-5 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
+              {error}
+            </div>
+          )}
+
+          {/* Actions */}
+          <div className="border-t bg-gray-50/50 p-4 sm:p-5">
+            <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-3">
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full sm:w-auto"
+                disabled={loading}
+                onClick={() =>
+                  router.push(
+                    "/patient/family-member"
+                  )
+                }
+              >
+                Cancel
+              </Button>
+
+              <Button
+                type="submit"
+                disabled={loading}
+                className="w-full sm:w-auto bg-customTeal hover:bg-customTeal/90 text-white"
+              >
+                <Save className="h-4 w-4 mr-2" />
+
+                {loading
+                  ? "Saving..."
+                  : "Save Family Member"}
+              </Button>
+            </div>
+          </div>
+        </div>
+      </form>
     </div>
   );
 }
