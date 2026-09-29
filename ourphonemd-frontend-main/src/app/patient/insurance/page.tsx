@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from 'react';
-import { CreditCard, Plus, Pencil, MoreHorizontal, Upload, Download, FileText, Receipt, Eye } from 'lucide-react';
+import { CreditCard, Plus, Pencil, MoreHorizontal, Download, FileText, Receipt, Eye } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -25,6 +25,11 @@ import {
 } from "@/components/ui/table";
 import Image from 'next/image';
 import Link from "next/link";
+
+import api from "@/helper/axios";
+import { PATIENT_INSURANCE_API } from "@/helper/api";
+import { useEffect } from "react";
+import { toast } from "sonner";
 
 // Types
 interface InsurancePolicy {
@@ -54,48 +59,7 @@ interface BillingRecord {
   patientName?: string;
 }
 
-// Sample data
-const insurancePolicies: InsurancePolicy[] = [
-  {
-    id: "1",
-    provider: "Blue Cross Blue Shield",
-    policyNumber: "BC1234567",
-    groupNumber: "GRP123456",
-    memberName: "You",
-    relationship: "Self",
-    startDate: "2023-01-01",
-    isPrimary: true,
-    isActive: true,
-    coverageType: "PPO",
-    frontImageUrl: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQucEa-hOKhXx61WGzT-d98yc0lJxkjKQ1dIg&s",
-    backImageUrl: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQucEa-hOKhXx61WGzT-d98yc0lJxkjKQ1dIg&s"
-  },
-  {
-    id: "2",
-    provider: "Aetna",
-    policyNumber: "AE7654321",
-    groupNumber: "AET987654",
-    memberName: "John Smith",
-    relationship: "Spouse",
-    startDate: "2023-01-01",
-    isPrimary: true,
-    isActive: true,
-    coverageType: "HMO",
-    frontImageUrl: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQucEa-hOKhXx61WGzT-d98yc0lJxkjKQ1dIg&s",
-    backImageUrl: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQucEa-hOKhXx61WGzT-d98yc0lJxkjKQ1dIg&s"
-  },
-  {
-    id: "3",
-    provider: "Delta Dental",
-    policyNumber: "DD9876543",
-    memberName: "You",
-    relationship: "Self",
-    startDate: "2023-02-15",
-    isPrimary: false,
-    isActive: true,
-    coverageType: "Dental",
-  }
-];
+
 
 const billingRecords: BillingRecord[] = [
   {
@@ -160,25 +124,322 @@ export default function InsurancePage() {
   const [showAddInsuranceDialog, setShowAddInsuranceDialog] = useState(false);
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [selectedPolicy, setSelectedPolicy] = useState<InsurancePolicy | null>(null);
-  
+  const [insurancePolicies, setInsurancePolicies] = useState<InsurancePolicy[]>([]);
+  const [deletingInsuranceId, setDeletingInsuranceId] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
-  
+  const [addInsuranceLoading, setAddInsuranceLoading] = useState(false);
+
+  const [addInsuranceForm, setAddInsuranceForm] = useState({
+    insuranceType: "",
+    insuranceProvider: "",
+    insuranceId: "",
+    policyNumber: "",
+    groupNumber: "",
+    ediPayer: "",
+    coverageType: "",
+    effectiveDate: "",
+    relationship: "Self",
+    isPrimary: false,
+
+    subscriberName: "",
+    subscriberCopay: "",
+    subscriberSsn: "",
+    subscriberDateOfBirth: "",
+    subscriberAddress: "",
+
+    frontCardImage: null as File | null,
+    backCardImage: null as File | null,
+  });
+
+  useEffect(() => {
+    const fetchInsurance = async () => {
+      try {
+        setLoading(true);
+        setError("");
+
+        const response = await api.get(PATIENT_INSURANCE_API.GET);
+
+        const data = response.data?.data ?? response.data ?? [];
+
+        const policies = data.map((insurance: any) => ({
+          id: insurance._id,
+          provider: insurance.insuranceProvider,
+          policyNumber: insurance.policyNumber,
+          groupNumber: insurance.groupNumber,
+          memberName:
+            insurance.familyMember?.firstName
+              ? `${insurance.familyMember.firstName} ${insurance.familyMember.lastName}`
+              : "You",
+          relationship: insurance.relationship,
+          startDate: insurance.effectiveDate,
+          isPrimary: insurance.isPrimary,
+          isActive: true,
+          coverageType: insurance.coverageType,
+          frontImageUrl: insurance.frontCardImage?.url,
+          backImageUrl: insurance.backCardImage?.url,
+        }));
+
+        setInsurancePolicies(policies);
+      } catch (error: any) {
+        console.error("Failed to fetch insurance:", error);
+        setError(
+          error.response?.data?.message ||
+          "Failed to load insurance information."
+        );
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchInsurance();
+  }, []);
+
+  const handleDeleteInsurance = async (insuranceId: string) => {
+    const confirmed = window.confirm(
+      "Are you sure you want to remove this insurance policy?"
+    );
+
+    if (!confirmed) return;
+
+    try {
+      setDeletingInsuranceId(insuranceId);
+
+      await api.delete(
+        PATIENT_INSURANCE_API.DELETE(insuranceId)
+      );
+
+      setInsurancePolicies((currentPolicies) =>
+        currentPolicies.filter(
+          (policy) => policy.id !== insuranceId
+        )
+      );
+    } catch (error: any) {
+      console.error("Failed to delete insurance:", error);
+
+      window.alert(
+        error.response?.data?.message ||
+        "Failed to remove insurance policy."
+      );
+    } finally {
+      setDeletingInsuranceId(null);
+    }
+  };
+
+  const handleAddInsurance = async (
+    event: React.FormEvent<HTMLFormElement>
+  ) => {
+    event.preventDefault();
+
+    const {
+      insuranceType,
+      insuranceProvider,
+      insuranceId,
+      policyNumber,
+      groupNumber,
+      ediPayer,
+      coverageType,
+      effectiveDate,
+      relationship,
+      isPrimary,
+      subscriberName,
+      subscriberCopay,
+      subscriberSsn,
+      subscriberDateOfBirth,
+      subscriberAddress,
+      frontCardImage,
+      backCardImage,
+    } = addInsuranceForm;
+
+    if (
+      !insuranceType ||
+      !insuranceProvider ||
+      !insuranceId.trim() ||
+      !policyNumber.trim() ||
+      !coverageType ||
+      !effectiveDate ||
+      !relationship
+    ) {
+      toast.error("Please fill in all required fields.");
+      return;
+    }
+
+    const isCommercial =
+      insuranceType.toLowerCase().includes("commercial");
+
+    if (
+      isCommercial &&
+      (
+        !subscriberName.trim() ||
+        !subscriberSsn.trim() ||
+        !subscriberDateOfBirth ||
+        !subscriberAddress.trim()
+      )
+    ) {
+      toast.error(
+        "Subscriber name, SSN, date of birth, and address are required for commercial insurance."
+      );
+      return;
+    }
+
+    try {
+      setAddInsuranceLoading(true);
+
+      const data = new FormData();
+
+      data.append("insuranceType", insuranceType);
+      data.append("insuranceProvider", insuranceProvider);
+      data.append("insuranceId", insuranceId.trim());
+      data.append("policyNumber", policyNumber.trim());
+
+      if (groupNumber.trim()) {
+        data.append("groupNumber", groupNumber.trim());
+      }
+
+      if (ediPayer.trim()) {
+        data.append("ediPayer", ediPayer.trim());
+      }
+
+      data.append("coverageType", coverageType);
+
+      data.append("coverageType", coverageType);
+      data.append("effectiveDate", effectiveDate);
+      data.append("relationship", relationship);
+      data.append("isPrimary", String(isPrimary));
+
+      if (isCommercial) {
+        data.append("subscriberName", subscriberName.trim());
+        data.append("subscriberSsn", subscriberSsn.trim());
+        data.append("subscriberDateOfBirth", subscriberDateOfBirth);
+        data.append("subscriberAddress", subscriberAddress.trim());
+
+        if (subscriberCopay.trim()) {
+          data.append("subscriberCopay", subscriberCopay.trim());
+        }
+      }
+
+      if (frontCardImage) {
+        data.append("frontCardImage", frontCardImage);
+      }
+
+      if (backCardImage) {
+        data.append("backCardImage", backCardImage);
+      }
+
+      await api.post(
+        PATIENT_INSURANCE_API.CREATE,
+        data
+      );
+
+      toast.success("Insurance added successfully.");
+
+      setShowAddInsuranceDialog(false);
+
+      setAddInsuranceForm({
+        insuranceType: "",
+        insuranceProvider: "",
+        insuranceId: "",
+        policyNumber: "",
+        groupNumber: "",
+        ediPayer: "",
+        coverageType: "",
+        effectiveDate: "",
+        relationship: "Self",
+        isPrimary: false,
+
+        subscriberName: "",
+        subscriberCopay: "",
+        subscriberSsn: "",
+        subscriberDateOfBirth: "",
+        subscriberAddress: "",
+
+        frontCardImage: null,
+        backCardImage: null,
+      });
+
+      const response = await api.get(
+        PATIENT_INSURANCE_API.GET
+      );
+
+      const insuranceData =
+        response.data?.data ??
+        response.data ??
+        [];
+
+      const policies = insuranceData.map(
+        (insurance: any) => ({
+          id: insurance._id,
+          provider: insurance.insuranceProvider,
+          policyNumber: insurance.policyNumber,
+          groupNumber: insurance.groupNumber,
+          memberName:
+            insurance.familyMember?.firstName
+              ? `${insurance.familyMember.firstName} ${insurance.familyMember.lastName}`
+              : "You",
+          relationship: insurance.relationship,
+          startDate: insurance.effectiveDate,
+          isPrimary: insurance.isPrimary,
+          isActive: true,
+          coverageType: insurance.coverageType,
+          frontImageUrl:
+            insurance.frontCardImage?.url,
+          backImageUrl:
+            insurance.backCardImage?.url,
+        })
+      );
+
+      setInsurancePolicies(policies);
+    } catch (error: any) {
+      console.error(
+        "Failed to add insurance:",
+        error
+      );
+
+      toast.error(
+        error.response?.data?.message ||
+        "Failed to add insurance."
+      );
+    } finally {
+      setAddInsuranceLoading(false);
+    }
+  };
+
+
+
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-customTeal">Insurance & Billing</h1>
-       
+      <div className="flex items-center justify-between gap-4">
+        <h1 className="text-2xl font-bold text-customTeal">
+          Insurance & Billing
+        </h1>
+
+        <Button
+          className="bg-customTeal hover:bg-customTeal/90 text-white"
+          onClick={() => setShowAddInsuranceDialog(true)}
+        >
+          <Plus className="h-4 w-4 mr-2" />
+          Add Insurance
+        </Button>
       </div>
-      
+
       <Tabs defaultValue="insurance" className="w-full">
         <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger value="insurance">Insurance</TabsTrigger>
           <TabsTrigger value="billing">Billing & Payments</TabsTrigger>
         </TabsList>
-        
+
         {/* Insurance Tab */}
         <TabsContent value="insurance" className="space-y-4 mt-4">
-          {insurancePolicies.length > 0 ? (
+          {loading ? (
+            <div className="text-center py-12 text-gray-500">
+              Loading insurance information...
+            </div>
+          ) : error ? (
+            <div className="text-center py-12 text-red-600">
+              {error}
+            </div>
+          ) : insurancePolicies.length > 0 ? (
             <div className="grid grid-cols-1 gap-4">
               {insurancePolicies.map(policy => (
                 <Card key={policy.id}>
@@ -204,9 +465,9 @@ export default function InsurancePage() {
                       </div>
                       <div className="flex">
                         <Link href={`/patient/insurance/${policy.id}/edit`}>
-                          <Button 
-                            variant="ghost" 
-                            size="icon" 
+                          <Button
+                            variant="ghost"
+                            size="icon"
                             className="text-gray-500 hover:text-customTeal"
                           >
                             <Pencil className="h-4 w-4" />
@@ -227,8 +488,14 @@ export default function InsurancePage() {
                               <Download className="h-4 w-4 mr-2" />
                               Download Card Images
                             </DropdownMenuItem>
-                            <DropdownMenuItem className="text-red-600 flex items-center">
-                              Remove Insurance
+                            <DropdownMenuItem
+                              className="text-red-600 flex items-center"
+                              disabled={deletingInsuranceId === policy.id}
+                              onClick={() => handleDeleteInsurance(policy.id)}
+                            >
+                              {deletingInsuranceId === policy.id
+                                ? "Removing..."
+                                : "Remove Insurance"}
                             </DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
@@ -271,16 +538,16 @@ export default function InsurancePage() {
                       <div className="grid grid-cols-2 gap-3 w-full">
                         {policy.frontImageUrl && (
                           <div className="relative group">
-                            <Image 
-                              src={policy.frontImageUrl} 
+                            <Image
+                              src={policy.frontImageUrl}
                               fill
-                              alt="Insurance Card (Front)" 
-                              className="w-full h-36 object-cover rounded-lg border border-gray-200" 
+                              alt="Insurance Card (Front)"
+                              className="w-full h-36 object-cover rounded-lg border border-gray-200"
                             />
                             <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-40 flex items-center justify-center transition-all rounded-lg">
-                              <Button 
-                                variant="ghost" 
-                                size="sm" 
+                              <Button
+                                variant="ghost"
+                                size="sm"
                                 className="text-transparent group-hover:text-white"
                               >
                                 <Eye className="h-4 w-4 mr-1" />
@@ -292,16 +559,16 @@ export default function InsurancePage() {
                         )}
                         {policy.backImageUrl && (
                           <div className="relative group">
-                            <Image 
-                              src={policy?.backImageUrl} 
-                              alt="Insurance Card (Back)" 
-                              className="w-full h-36 object-cover rounded-lg border border-gray-200" 
+                            <Image
+                              src={policy?.backImageUrl}
+                              alt="Insurance Card (Back)"
+                              className="w-full h-36 object-cover rounded-lg border border-gray-200"
                               fill
                             />
                             <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-40 flex items-center justify-center transition-all rounded-lg">
-                              <Button 
-                                variant="ghost" 
-                                size="sm" 
+                              <Button
+                                variant="ghost"
+                                size="sm"
                                 className="text-transparent group-hover:text-white"
                               >
                                 <Eye className="h-4 w-4 mr-1" />
@@ -322,16 +589,11 @@ export default function InsurancePage() {
               <CreditCard className="h-12 w-12 mx-auto text-gray-400 mb-4" />
               <h3 className="text-lg font-medium text-gray-900 mb-2">No insurance information</h3>
               <p className="text-gray-500 mb-4">You haven&apos;t added any insurance policies yet.</p>
-              <Button 
-                className="bg-customTeal hover:bg-customTeal/90 text-white"
-                onClick={() => setShowAddInsuranceDialog(true)}
-              >
-                <Plus className="h-4 w-4 mr-2" /> Add Your First Insurance Policy
-              </Button>
+
             </div>
           )}
         </TabsContent>
-        
+
         {/* Billing Tab */}
         <TabsContent value="billing" className="space-y-4 mt-4">
           <Card>
@@ -371,7 +633,7 @@ export default function InsurancePage() {
                         <TableCell className="text-right">${record.insuranceCovered.toFixed(2)}</TableCell>
                         <TableCell className="text-right">${record.patientResponsibility.toFixed(2)}</TableCell>
                         <TableCell className="text-right">
-                          <span 
+                          <span
                             className={`
                               px-2 py-1 rounded-full text-xs font-medium
                               ${record.status === 'paid' ? 'bg-green-100 text-green-700' : ''}
@@ -386,9 +648,9 @@ export default function InsurancePage() {
                         </TableCell>
                         <TableCell className="text-right space-x-1">
                           {record.receiptUrl && (
-                            <Button 
-                              variant="outline" 
-                              size="sm" 
+                            <Button
+                              variant="outline"
+                              size="sm"
                               className="h-8 px-2"
                               asChild
                             >
@@ -399,8 +661,8 @@ export default function InsurancePage() {
                             </Button>
                           )}
                           {record.status === 'pending' && (
-                            <Button 
-                              size="sm" 
+                            <Button
+                              size="sm"
                               className="h-8 px-2 bg-customTeal hover:bg-customTeal/90 text-white"
                             >
                               Pay Now
@@ -416,159 +678,386 @@ export default function InsurancePage() {
           </Card>
         </TabsContent>
       </Tabs>
-      
+
       {/* Add Insurance Dialog */}
-      <Dialog open={showAddInsuranceDialog} onOpenChange={setShowAddInsuranceDialog}>
+      <Dialog
+        open={showAddInsuranceDialog}
+        onOpenChange={setShowAddInsuranceDialog}
+      >
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Add Insurance</DialogTitle>
+
             <DialogDescription>
               Enter your insurance information below.
             </DialogDescription>
           </DialogHeader>
-          <div className="grid gap-4 py-4">
+
+          <form
+            onSubmit={handleAddInsurance}
+            className="space-y-4"
+          >
             <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="provider" className="text-right">
-                Insurance Provider
+              <Label
+                htmlFor="insurance-type"
+                className="text-right"
+              >
+                Insurance Type
               </Label>
-              <Select>
-                <SelectTrigger className="col-span-3">
+
+              <Select
+                value={addInsuranceForm.insuranceType}
+                onValueChange={(value) =>
+                  setAddInsuranceForm((current) => ({
+                    ...current,
+                    insuranceType: value,
+                  }))
+                }
+              >
+                <SelectTrigger
+                  id="insurance-type"
+                  className="col-span-3"
+                >
+                  <SelectValue placeholder="Select insurance type" />
+                </SelectTrigger>
+
+                <SelectContent>
+                  <SelectItem value="Government">
+                    Government Health Scheme
+                  </SelectItem>
+
+                  <SelectItem value="Ayushman Bharat PM-JAY">
+                    Ayushman Bharat PM-JAY
+                  </SelectItem>
+
+                  <SelectItem value="CGHS">
+                    CGHS
+                  </SelectItem>
+
+                  <SelectItem value="ESIC">
+                    ESIC
+                  </SelectItem>
+
+                  <SelectItem value="Commercial">
+                    Private / Commercial Insurance
+                  </SelectItem>
+
+                  <SelectItem value="Other">
+                    Other
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label
+                htmlFor="insurance-provider"
+                className="text-right"
+              >
+                Provider
+              </Label>
+
+              <Select
+                value={addInsuranceForm.insuranceProvider}
+                onValueChange={(value) =>
+                  setAddInsuranceForm((current) => ({
+                    ...current,
+                    insuranceProvider: value,
+                  }))
+                }
+              >
+                <SelectTrigger
+                  id="insurance-provider"
+                  className="col-span-3"
+                >
                   <SelectValue placeholder="Select provider" />
                 </SelectTrigger>
+
                 <SelectContent>
-                  {insuranceProviders.map(provider => (
-                    <SelectItem key={provider} value={provider.toLowerCase().replace(/\s+/g, '-')}>
+                  {[
+                    "Star Health and Allied Insurance",
+                    "Niva Bupa Health Insurance",
+                    "Care Health Insurance",
+                    "HDFC ERGO Health Insurance",
+                    "ICICI Lombard General Insurance",
+                    "Aditya Birla Health Insurance",
+                    "ManipalCigna Health Insurance",
+                    "Tata AIG General Insurance",
+                    "Bajaj Allianz General Insurance",
+                    "New India Assurance",
+                    "National Insurance Company",
+                    "United India Insurance",
+                    "Oriental Insurance",
+                    "Other",
+                  ].map((provider) => (
+                    <SelectItem
+                      key={provider}
+                      value={provider}
+                    >
                       {provider}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
-            
+
             <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="policy-number" className="text-right">
+              <Label
+                htmlFor="insurance-id"
+                className="text-right"
+              >
+                Member ID
+              </Label>
+
+              <Input
+                id="insurance-id"
+                value={addInsuranceForm.insuranceId}
+                onChange={(event) =>
+                  setAddInsuranceForm((current) => ({
+                    ...current,
+                    insuranceId: event.target.value,
+                  }))
+                }
+                placeholder="Insurance member ID"
+                className="col-span-3"
+              />
+            </div>
+
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label
+                htmlFor="policy-number"
+                className="text-right"
+              >
                 Policy Number
               </Label>
-              <Input id="policy-number" placeholder="Policy number" className="col-span-3" />
+
+              <Input
+                id="policy-number"
+                value={addInsuranceForm.policyNumber}
+                onChange={(event) =>
+                  setAddInsuranceForm((current) => ({
+                    ...current,
+                    policyNumber: event.target.value,
+                  }))
+                }
+                placeholder="Policy number"
+                className="col-span-3"
+              />
             </div>
-            
+
             <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="group-number" className="text-right">
+              <Label
+                htmlFor="group-number"
+                className="text-right"
+              >
                 Group Number
               </Label>
-              <Input id="group-number" placeholder="Group number (optional)" className="col-span-3" />
+
+              <Input
+                id="group-number"
+                value={addInsuranceForm.groupNumber}
+                onChange={(event) =>
+                  setAddInsuranceForm((current) => ({
+                    ...current,
+                    groupNumber: event.target.value,
+                  }))
+                }
+                placeholder="Optional"
+                className="col-span-3"
+              />
             </div>
-            
+
             <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="member-name" className="text-right">
-                Member Name
+              <Label
+                htmlFor="group-number"
+                className="text-right"
+              >
+                Group Number
               </Label>
-              <Input id="member-name" placeholder="Name on insurance card" className="col-span-3" />
+
+              <Input
+                id="group-number"
+                value={addInsuranceForm.groupNumber}
+                onChange={(event) =>
+                  setAddInsuranceForm((current) => ({
+                    ...current,
+                    groupNumber: event.target.value,
+                  }))
+                }
+                placeholder="Optional"
+                className="col-span-3"
+              />
             </div>
-            
+
             <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="relationship" className="text-right">
+              <Label
+                htmlFor="coverage-type"
+                className="text-right"
+              >
+                Coverage
+              </Label>
+
+              <Select
+                value={addInsuranceForm.coverageType}
+                onValueChange={(value) =>
+                  setAddInsuranceForm((current) => ({
+                    ...current,
+                    coverageType: value,
+                  }))
+                }
+              >
+                <SelectTrigger
+                  id="coverage-type"
+                  className="col-span-3"
+                >
+                  <SelectValue placeholder="Select coverage" />
+                </SelectTrigger>
+
+                <SelectContent>
+                  <SelectItem value="Medical">
+                    Medical
+                  </SelectItem>
+
+                  <SelectItem value="Hospitalization">
+                    Hospitalization
+                  </SelectItem>
+
+                  <SelectItem value="Maternity">
+                    Maternity
+                  </SelectItem>
+
+                  <SelectItem value="Critical Illness">
+                    Critical Illness
+                  </SelectItem>
+
+                  <SelectItem value="Dental">
+                    Dental
+                  </SelectItem>
+
+                  <SelectItem value="Vision">
+                    Vision
+                  </SelectItem>
+
+                  <SelectItem value="Other">
+                    Other
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label
+                htmlFor="start-date"
+                className="text-right"
+              >
+                Effective Date
+              </Label>
+
+              <Input
+                id="start-date"
+                type="date"
+                value={addInsuranceForm.effectiveDate}
+                onChange={(event) =>
+                  setAddInsuranceForm((current) => ({
+                    ...current,
+                    effectiveDate: event.target.value,
+                  }))
+                }
+                className="col-span-3"
+              />
+            </div>
+
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label
+                htmlFor="relationship"
+                className="text-right"
+              >
                 Relationship
               </Label>
-              <Select>
-                <SelectTrigger className="col-span-3">
-                  <SelectValue placeholder="Select relationship" />
+
+              <Select
+                value={addInsuranceForm.relationship}
+                onValueChange={(value) =>
+                  setAddInsuranceForm((current) => ({
+                    ...current,
+                    relationship: value,
+                  }))
+                }
+              >
+                <SelectTrigger
+                  id="relationship"
+                  className="col-span-3"
+                >
+                  <SelectValue />
                 </SelectTrigger>
+
                 <SelectContent>
-                  <SelectItem value="self">Self</SelectItem>
-                  <SelectItem value="spouse">Spouse</SelectItem>
-                  <SelectItem value="child">Child</SelectItem>
-                  <SelectItem value="parent">Parent</SelectItem>
-                  <SelectItem value="other">Other</SelectItem>
+                  <SelectItem value="Self">
+                    Self
+                  </SelectItem>
+                  <SelectItem value="Spouse">
+                    Spouse
+                  </SelectItem>
+                  <SelectItem value="Child">
+                    Child
+                  </SelectItem>
+                  <SelectItem value="Parent">
+                    Parent
+                  </SelectItem>
+                  <SelectItem value="Other">
+                    Other
+                  </SelectItem>
                 </SelectContent>
               </Select>
             </div>
-            
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="coverage-type" className="text-right">
-                Coverage Type
+
+            <div className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                id="primary-insurance"
+                checked={addInsuranceForm.isPrimary}
+                onChange={(event) =>
+                  setAddInsuranceForm((current) => ({
+                    ...current,
+                    isPrimary: event.target.checked,
+                  }))
+                }
+                className="rounded text-customTeal"
+              />
+
+              <Label
+                htmlFor="primary-insurance"
+                className="cursor-pointer"
+              >
+                This is my primary insurance
               </Label>
-              <Select>
-                <SelectTrigger className="col-span-3">
-                  <SelectValue placeholder="Select coverage type" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="hmo">HMO</SelectItem>
-                  <SelectItem value="ppo">PPO</SelectItem>
-                  <SelectItem value="epo">EPO</SelectItem>
-                  <SelectItem value="pos">POS</SelectItem>
-                  <SelectItem value="hdhp">HDHP</SelectItem>
-                  <SelectItem value="dental">Dental</SelectItem>
-                  <SelectItem value="vision">Vision</SelectItem>
-                  <SelectItem value="other">Other</SelectItem>
-                </SelectContent>
-              </Select>
             </div>
-            
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="start-date" className="text-right">
-                Start Date
-              </Label>
-              <Input id="start-date" type="date" className="col-span-3" />
-            </div>
-            
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label className="text-right">
-                Primary Insurance
-              </Label>
-              <div className="flex items-center space-x-2 col-span-3">
-                <input type="checkbox" id="primary-insurance" className="rounded text-customTeal" />
-                <Label htmlFor="primary-insurance" className="cursor-pointer">
-                  This is my primary insurance
-                </Label>
-              </div>
-            </div>
-            
-            <div className="grid grid-cols-4 items-start gap-4">
-              <Label className="text-right pt-2">
-                Card Images
-              </Label>
-              <div className="col-span-3 space-y-3">
-                <div>
-                  <p className="text-sm mb-1">Front of Card (Optional)</p>
-                  <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center">
-                    <Upload className="h-6 w-6 mx-auto text-gray-400 mb-1" />
-                    <p className="text-xs text-gray-500">Drag & drop or click to upload</p>
-                    <Input type="file" className="hidden" id="front-image" />
-                    <Label htmlFor="front-image">
-                      <Button type="button" variant="outline" className="mt-2 text-xs h-7 px-2">
-                        Select Image
-                      </Button>
-                    </Label>
-                  </div>
-                </div>
-                <div>
-                  <p className="text-sm mb-1">Back of Card (Optional)</p>
-                  <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center">
-                    <Upload className="h-6 w-6 mx-auto text-gray-400 mb-1" />
-                    <p className="text-xs text-gray-500">Drag & drop or click to upload</p>
-                    <Input type="file" className="hidden" id="back-image" />
-                    <Label htmlFor="back-image">
-                      <Button type="button" variant="outline" className="mt-2 text-xs h-7 px-2">
-                        Select Image
-                      </Button>
-                    </Label>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowAddInsuranceDialog(false)}>
-              Cancel
-            </Button>
-            <Button className="bg-customTeal hover:bg-customTeal/90 text-white">
-              Add Insurance
-            </Button>
-          </DialogFooter>
+
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() =>
+                  setShowAddInsuranceDialog(false)
+                }
+                disabled={addInsuranceLoading}
+              >
+                Cancel
+              </Button>
+
+              <Button
+                type="submit"
+                className="bg-customTeal hover:bg-customTeal/90 text-white"
+                disabled={addInsuranceLoading}
+              >
+                {addInsuranceLoading
+                  ? "Adding..."
+                  : "Add Insurance"}
+              </Button>
+            </DialogFooter>
+          </form>
         </DialogContent>
       </Dialog>
-      
       {/* Edit Insurance Dialog */}
       <Dialog open={showEditInsuranceDialog} onOpenChange={setShowEditInsuranceDialog}>
         <DialogContent className="sm:max-w-md">
@@ -597,41 +1086,41 @@ export default function InsurancePage() {
                   </SelectContent>
                 </Select>
               </div>
-              
+
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="edit-policy-number" className="text-right">
                   Policy Number
                 </Label>
-                <Input 
-                  id="edit-policy-number" 
+                <Input
+                  id="edit-policy-number"
                   defaultValue={selectedPolicy.policyNumber}
-                  className="col-span-3" 
+                  className="col-span-3"
                 />
               </div>
-              
+
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="edit-group-number" className="text-right">
                   Group Number
                 </Label>
-                <Input 
-                  id="edit-group-number" 
+                <Input
+                  id="edit-group-number"
                   defaultValue={selectedPolicy.groupNumber || ""}
-                  placeholder="Group number (optional)" 
-                  className="col-span-3" 
+                  placeholder="Group number (optional)"
+                  className="col-span-3"
                 />
               </div>
-              
+
               {/* Additional fields would follow the same pattern */}
-              
+
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label className="text-right">
                   Status
                 </Label>
                 <div className="flex items-center space-x-2 col-span-3">
-                  <input 
-                    type="checkbox" 
-                    id="edit-active-status" 
-                    className="rounded text-customTeal" 
+                  <input
+                    type="checkbox"
+                    id="edit-active-status"
+                    className="rounded text-customTeal"
                     defaultChecked={selectedPolicy.isActive}
                   />
                   <Label htmlFor="edit-active-status" className="cursor-pointer">

@@ -359,6 +359,22 @@ export default function FamilyMemberDetailsPage() {
                   <Badge className="bg-blue-100 text-blue-700 hover:bg-blue-100">
                     Own Insurance
                   </Badge>
+
+                  <div className="mt-4">
+                    <Button
+                      type="button"
+                      size="sm"
+                      className="bg-customTeal hover:bg-customTeal/90 text-white"
+                      asChild
+                    >
+                      <Link
+                        href={`/patient/insurance/${member.familyMemberId}/add-insurance`}
+                      >
+                        <CreditCard className="h-4 w-4 mr-2" />
+                        Add Insurance
+                      </Link>
+                    </Button>
+                  </div>
                 </div>
               ) : (
                 <div>

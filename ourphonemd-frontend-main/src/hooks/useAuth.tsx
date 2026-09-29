@@ -658,9 +658,10 @@ export const useAuth = () => {
         }
 
         break;
+    }
 
-        return isValid;
-    };
+    return isValid;
+  };
 
     /*
      * =========================
@@ -963,4 +964,3 @@ export const useAuth = () => {
       resendOtp,
     };
   };
-}
