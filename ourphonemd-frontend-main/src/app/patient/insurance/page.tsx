@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from 'react';
-import { CreditCard, Plus, Pencil, MoreHorizontal, Download, FileText, Receipt, Eye } from 'lucide-react';
+import { CreditCard, Plus, Pencil, MoreHorizontal, Download, FileText, Receipt, Eye,  } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -869,22 +869,22 @@ export default function InsurancePage() {
 
             <div className="grid grid-cols-4 items-center gap-4">
               <Label
-                htmlFor="group-number"
+                htmlFor="edi-payer"
                 className="text-right"
               >
-                Group Number
+                EDI Payer
               </Label>
 
               <Input
-                id="group-number"
-                value={addInsuranceForm.groupNumber}
+                id="edi-payer"
+                value={addInsuranceForm.ediPayer}
                 onChange={(event) =>
                   setAddInsuranceForm((current) => ({
                     ...current,
-                    groupNumber: event.target.value,
+                    ediPayer: event.target.value,
                   }))
                 }
-                placeholder="Optional"
+                placeholder="Optional EDI payer"
                 className="col-span-3"
               />
             </div>
@@ -1009,6 +1009,197 @@ export default function InsurancePage() {
                   </SelectItem>
                 </SelectContent>
               </Select>
+            </div>
+
+            {addInsuranceForm.insuranceType
+              .toLowerCase()
+              .includes("commercial") && (
+                <>
+                  <div className="border-t pt-4">
+                    <h3 className="font-medium text-customTeal">
+                      Subscriber Information
+                    </h3>
+
+                    <p className="text-sm text-gray-500 mt-1">
+                      Required for private / commercial insurance.
+                    </p>
+                  </div>
+
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <Label
+                      htmlFor="subscriber-name"
+                      className="text-right"
+                    >
+                      Subscriber Name
+                    </Label>
+
+                    <Input
+                      id="subscriber-name"
+                      value={addInsuranceForm.subscriberName}
+                      onChange={(event) =>
+                        setAddInsuranceForm((current) => ({
+                          ...current,
+                          subscriberName: event.target.value,
+                        }))
+                      }
+                      placeholder="Subscriber full name"
+                      className="col-span-3"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <Label
+                      htmlFor="subscriber-id"
+                      className="text-right"
+                    >
+                      Subscriber ID
+                    </Label>
+
+                    <Input
+                      id="subscriber-id"
+                      value={addInsuranceForm.subscriberSsn}
+                      onChange={(event) =>
+                        setAddInsuranceForm((current) => ({
+                          ...current,
+                          subscriberSsn: event.target.value,
+                        }))
+                      }
+                      placeholder="Subscriber ID"
+                      className="col-span-3"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <Label
+                      htmlFor="subscriber-dob"
+                      className="text-right"
+                    >
+                      Subscriber DOB
+                    </Label>
+
+                    <Input
+                      id="subscriber-dob"
+                      type="date"
+                      value={addInsuranceForm.subscriberDateOfBirth}
+                      onChange={(event) =>
+                        setAddInsuranceForm((current) => ({
+                          ...current,
+                          subscriberDateOfBirth: event.target.value,
+                        }))
+                      }
+                      className="col-span-3"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <Label
+                      htmlFor="subscriber-address"
+                      className="text-right"
+                    >
+                      Subscriber Address
+                    </Label>
+
+                    <Input
+                      id="subscriber-address"
+                      value={addInsuranceForm.subscriberAddress}
+                      onChange={(event) =>
+                        setAddInsuranceForm((current) => ({
+                          ...current,
+                          subscriberAddress: event.target.value,
+                        }))
+                      }
+                      placeholder="Subscriber address"
+                      className="col-span-3"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <Label
+                      htmlFor="subscriber-copay"
+                      className="text-right"
+                    >
+                      Subscriber Copay
+                    </Label>
+
+                    <Input
+                      id="subscriber-copay"
+                      value={addInsuranceForm.subscriberCopay}
+                      onChange={(event) =>
+                        setAddInsuranceForm((current) => ({
+                          ...current,
+                          subscriberCopay: event.target.value,
+                        }))
+                      }
+                      placeholder="Optional"
+                      className="col-span-3"
+                    />
+                  </div>
+                </>
+              )}
+
+            <div className="border-t pt-4">
+              <h3 className="font-medium text-customTeal">
+                Insurance Card
+              </h3>
+
+              <p className="text-sm text-gray-500 mt-1">
+                Upload the front and back of your insurance card.
+                JPG, PNG, or GIF up to 5 MB each.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="front-card-image">
+                  Front of Card
+                </Label>
+
+                <Input
+                  id="front-card-image"
+                  type="file"
+                  accept="image/jpeg,image/png,image/gif"
+                  className="mt-2"
+                  onChange={(event) =>
+                    setAddInsuranceForm((current) => ({
+                      ...current,
+                      frontCardImage:
+                        event.target.files?.[0] ?? null,
+                    }))
+                  }
+                />
+
+                {addInsuranceForm.frontCardImage && (
+                  <p className="text-xs text-gray-500 mt-1">
+                    {addInsuranceForm.frontCardImage.name}
+                  </p>
+                )}
+              </div>
+
+              <div>
+                <Label htmlFor="back-card-image">
+                  Back of Card
+                </Label>
+
+                <Input
+                  id="back-card-image"
+                  type="file"
+                  accept="image/jpeg,image/png,image/gif"
+                  className="mt-2"
+                  onChange={(event) =>
+                    setAddInsuranceForm((current) => ({
+                      ...current,
+                      backCardImage:
+                        event.target.files?.[0] ?? null,
+                    }))
+                  }
+                />
+
+                {addInsuranceForm.backCardImage && (
+                  <p className="text-xs text-gray-500 mt-1">
+                    {addInsuranceForm.backCardImage.name}
+                  </p>
+                )}
+              </div>
             </div>
 
             <div className="flex items-center gap-2">

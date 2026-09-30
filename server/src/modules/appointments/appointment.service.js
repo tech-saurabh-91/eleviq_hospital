@@ -95,7 +95,9 @@ const validateAppointmentDate = (appointmentDate) => {
     ].join("-");
 
     if (appointmentDate < todayString) {
-        throw new Error("Appointment date cannot be in the past");
+        const error = new Error("Appointment date cannot be in the past");
+        error.statusCode = 400;
+        throw error;
     }
 };
 
@@ -121,9 +123,12 @@ const validateAppointmentTime = (appointmentDate, startTime) => {
         const selectedMinutes = timeToMinutes(startTime);
 
         if (selectedMinutes <= currentMinutes) {
-            throw new Error(
+            const error = new Error(
                 "Selected appointment time has already passed"
             );
+
+            error.statusCode = 400;
+            throw error;
         }
     }
 };
@@ -491,6 +496,13 @@ const verifyAppointment = async (appointmentId) => {
         throw error;
     }
 
+    validateAppointmentDate(appointment.appointmentDate);
+
+    validateAppointmentTime(
+        appointment.appointmentDate,
+        appointment.startTime
+    );
+
     if (appointment.status !== "BOOKED") {
         const error = new Error(
             "Only booked appointments can be verified"
@@ -537,6 +549,13 @@ const confirmAppointment = async (appointmentId) => {
         error.statusCode = 404;
         throw error;
     }
+
+    validateAppointmentDate(appointment.appointmentDate);
+
+    validateAppointmentTime(
+        appointment.appointmentDate,
+        appointment.startTime
+    );
 
     if (appointment.status !== "VERIFIED") {
         const error = new Error(
@@ -612,12 +631,12 @@ const confirmAppointment = async (appointmentId) => {
         });
     }
 
-    
+
     if (wasRescheduled) {
         appointment.rescheduledAt = null;
         await appointment.save();
     }
-    
+
     return buildAppointmentResponse(appointment);
 };
 

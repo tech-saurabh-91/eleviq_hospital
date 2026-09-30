@@ -13,6 +13,7 @@ const {
     getClinicalRecordController,
     getMyClinicalHistoryController,
     getDoctorClinicalHistoryController,
+    downloadClinicalRecordPdfController,
 } = require("./clinical-record.controller");
 
 const router = express.Router();
@@ -40,6 +41,13 @@ router.get(
     authenticate,
     authorize("clinical.read"),
     getDoctorClinicalHistoryController
+);
+
+router.get(
+    "/:recordId/pdf",
+    authenticate,
+    authorize("prescription.self.read"),
+    downloadClinicalRecordPdfController
 );
 
 // Patient views one finalized clinical record
