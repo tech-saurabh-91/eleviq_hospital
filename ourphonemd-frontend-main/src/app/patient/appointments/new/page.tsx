@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { Suspense, useEffect, useState } from "react";
 import { ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -71,7 +71,7 @@ const appointmentTypes = [
   },
 ];
 
-export default function NewAppointmentPage() {
+function NewAppointmentContent() {
   const router = useRouter();
 
   const searchParams = useSearchParams();
@@ -902,5 +902,13 @@ export default function NewAppointmentPage() {
         </CardContent>
       </Card>
     </div>
+  );
+}
+
+export default function NewAppointmentPage() {
+  return (
+    <Suspense fallback={null}>
+      <NewAppointmentContent />
+    </Suspense>
   );
 }
