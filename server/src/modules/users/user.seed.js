@@ -28,6 +28,12 @@ const users = [
         role: "doctor",
     },
     {
+        username: "doctor002",
+        mobile: "9999999996",
+        password: process.env.SEED_DOCTOR_PASSWORD,
+        role: "doctor",
+    },
+    {
         username: "nurse001",
         mobile: "9999999994",
         password: process.env.SEED_NURSE_PASSWORD,

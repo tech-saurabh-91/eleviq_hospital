@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useMemo, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useRouter } from "next/navigation";
 import {
   ArrowLeft,
   CreditCard,
@@ -50,31 +50,12 @@ import { toast } from "sonner";
 
 import api from "@/helper/axios";
 import {
-  PATIENT_FAMILY_API,
   PATIENT_INSURANCE_API,
 } from "@/helper/api";
 
 /* -------------------------------------------------------------------------- */
 /* TYPES                                                                      */
 /* -------------------------------------------------------------------------- */
-
-interface FamilyMember {
-  familyMemberId: string;
-  firstName: string;
-  middleName?: string;
-  lastName: string;
-  relationship: string;
-  dateOfBirth: string;
-  gender: string;
-  email: string;
-  phone: string;
-  address?: {
-    street?: string;
-    city?: string;
-    state?: string;
-    zipCode?: string;
-  };
-}
 
 interface InsuranceFile {
   file: File | null;
@@ -368,15 +349,6 @@ const validateInsuranceFile = (file: File) => {
 
 export default function AddInsurancePage() {
   const router = useRouter();
-  const params = useParams();
-
-  const familyMemberId = String(params.id || "");
-
-  const [member, setMember] =
-    useState<FamilyMember | null>(null);
-
-  const [loadingMember, setLoadingMember] =
-    useState(true);
 
   const [isSubmitting, setIsSubmitting] =
     useState(false);
@@ -431,112 +403,7 @@ export default function AddInsurancePage() {
     );
   }, [insuranceType]);
 
-  /* ------------------------------------------------------------------------ */
-  /* FETCH FAMILY MEMBER                                                      */
-  /* ------------------------------------------------------------------------ */
-
-  useEffect(() => {
-    let isMounted = true;
-
-    const fetchFamilyMember = async () => {
-      try {
-        setLoadingMember(true);
-
-        const response = await api.get(
-          PATIENT_FAMILY_API.GET_SINGLE(
-            familyMemberId
-          )
-        );
-
-        const data =
-          response.data?.data ??
-          response.data;
-
-        if (isMounted) {
-          setMember(data);
-        }
-      } catch (error: any) {
-        console.error(
-          "Failed to fetch family member:",
-          error
-        );
-
-        if (isMounted) {
-          toast.error(
-            error?.response?.data?.message ||
-              "Failed to load family member."
-          );
-
-          router.push("/patient/family-member");
-        }
-      } finally {
-        if (isMounted) {
-          setLoadingMember(false);
-        }
-      }
-    };
-
-    if (familyMemberId) {
-      fetchFamilyMember();
-    }
-
-    return () => {
-      isMounted = false;
-    };
-  }, [familyMemberId, router]);
-
-  /* ------------------------------------------------------------------------ */
-  /* AUTO-FILL SUBSCRIBER FOR SELF                                            */
-  /* ------------------------------------------------------------------------ */
-
-  useEffect(() => {
-    if (!member) return;
-
-    const relationship =
-      form.getValues("relationship");
-
-    if (relationship !== "self") return;
-
-    const currentSubscriberName =
-      form.getValues("subscriberName");
-
-    if (!currentSubscriberName) {
-      form.setValue(
-        "subscriberName",
-        getFullName(member)
-      );
-    }
-
-    if (
-      member.dateOfBirth &&
-      !form.getValues("subscriberDateOfBirth")
-    ) {
-      form.setValue(
-        "subscriberDateOfBirth",
-        member.dateOfBirth
-      );
-    }
-
-    if (
-      member.address &&
-      !form.getValues("subscriberAddress")
-    ) {
-      const address = [
-        member.address.street,
-        member.address.city,
-        member.address.state,
-        member.address.zipCode,
-      ]
-        .filter(Boolean)
-        .join(", ");
-
-      form.setValue(
-        "subscriberAddress",
-        address
-      );
-    }
-  }, [member, form]);
-
+ 
   /* ------------------------------------------------------------------------ */
   /* FILE HANDLING                                                            */
   /* ------------------------------------------------------------------------ */
@@ -763,9 +630,7 @@ export default function AddInsurancePage() {
           "Insurance added successfully."
       );
 
-      router.push(
-        `/patient/family-member/${familyMemberId}`
-      );
+      router.push("/patient/insurance");
     } catch (error: any) {
       console.error(
         "Insurance creation failed:",
@@ -858,8 +723,7 @@ export default function AddInsurancePage() {
               </CardTitle>
 
               <CardDescription>
-                Enter your family member&apos;s
-                insurance information
+                Enter your insurance information
               </CardDescription>
             </div>
 

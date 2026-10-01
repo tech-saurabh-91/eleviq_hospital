@@ -28,7 +28,17 @@ export const PATIENT_REGISTRATION_API = {
 
 export const PATIENT_INSURANCE_API = {
   CREATE: `${BASE_URL}/insurance`,
+
   GET: `${BASE_URL}/insurance`,
+
+  GET_SINGLE: (insuranceId: string) =>
+    `${BASE_URL}/insurance/${insuranceId}`,
+
+  UPDATE: (insuranceId: string) =>
+    `${BASE_URL}/insurance/${insuranceId}`,
+
+  DELETE: (insuranceId: string) =>
+    `${BASE_URL}/insurance/${insuranceId}`,
 };
 
 export const PATIENT_APPOINTMENT_API = {

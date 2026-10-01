@@ -58,6 +58,12 @@ export default function AddFamilyMemberPage() {
   const [form, setForm] = useState(initialForm);
   const [error, setError] = useState("");
 
+  const [createdFamilyMemberId, setCreatedFamilyMemberId] =
+    useState<string | null>(null);
+
+  const [showInsurancePrompt, setShowInsurancePrompt] =
+    useState(false);
+
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
   ) => {
@@ -160,8 +166,8 @@ export default function AddFamilyMemberPage() {
       return "Phone number is required";
     }
 
-    if (!/^\+?[0-9]{10,15}$/.test(phone)) {
-      return "Phone number must contain 10 to 15 digits";
+    if (!/^\+?[0-9]{10}$/.test(phone)) {
+      return "Phone number must contain 10 digits";
     }
 
     if (!street) {
@@ -192,7 +198,7 @@ export default function AddFamilyMemberPage() {
       return "PIN code is required";
     }
 
-    if (!/^[0-9]{4,10}$/.test(zipCode)) {
+    if (!/^[0-9]{6}$/.test(zipCode)) {
       return "PIN code must contain 6 digits";
     }
 
@@ -253,7 +259,21 @@ export default function AddFamilyMemberPage() {
         payload
       );
 
-      await createFamilyMember(payload);
+      const createdMember = await createFamilyMember(payload);
+
+      const familyMemberId =
+        createdMember?.familyMemberId ??
+        createdMember?._id ??
+        createdMember?.id;
+
+      if (
+        form.insuranceCoverage === "own" &&
+        familyMemberId
+      ) {
+        setCreatedFamilyMemberId(familyMemberId);
+        setShowInsurancePrompt(true);
+        return;
+      }
 
       router.push("/patient/family-member");
     } catch (error: any) {
@@ -459,7 +479,7 @@ export default function AddFamilyMemberPage() {
                   value={form.phone}
                   onChange={handleChange}
                   placeholder="Enter phone number"
-                  maxLength={16}
+                  maxLength={10}
                 />
               </div>
             </div>
@@ -660,6 +680,49 @@ export default function AddFamilyMemberPage() {
           </div>
         </div>
       </form>
+
+      {showInsurancePrompt && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
+          <div className="w-full max-w-md rounded-xl bg-white shadow-xl">
+            <div className="p-6">
+              <h2 className="text-xl font-semibold text-customTeal">
+                Family Member Added Successfully
+              </h2>
+
+              <p className="mt-2 text-sm text-gray-600">
+                This family member has their own insurance.
+                Would you like to add their insurance details now?
+              </p>
+
+              <div className="mt-6 flex flex-col-reverse sm:flex-row gap-3 sm:justify-end">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() =>
+                    router.push("/patient/family-member")
+                  }
+                >
+                  Skip for now
+                </Button>
+
+                <Button
+                  type="button"
+                  className="bg-customTeal hover:bg-customTeal/90 text-white"
+                  onClick={() => {
+                    if (!createdFamilyMemberId) return;
+
+                    router.push(
+                      `/patient/insurance/${createdFamilyMemberId}/add-insurance`
+                    );
+                  }}
+                >
+                  Add Insurance
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

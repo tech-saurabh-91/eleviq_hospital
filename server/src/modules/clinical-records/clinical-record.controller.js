@@ -4,6 +4,9 @@ const {
     getPatientClinicalHistory,
     getClinicalHistoryForDoctor,
 } = require("./clinical-record.service");
+const {
+    buildClinicalRecordPdf,
+} = require("./clinical-record.pdf.service");
 
 
 const createClinicalRecordController = async (req, res, next) => {
@@ -29,7 +32,7 @@ const createClinicalRecordController = async (req, res, next) => {
 
 const getClinicalRecordController = async (req, res, next) => {
     try {
-        const patientId = req.user.patientId;
+        const patientId = req.user._id;
 
         const record = await getClinicalRecordForPatient({
             recordId: req.params.recordId,
@@ -49,7 +52,7 @@ const getClinicalRecordController = async (req, res, next) => {
 
 const getMyClinicalHistoryController = async (req, res, next) => {
     try {
-        const patientId = req.user.patientId;
+        const patientId = req.user._id;
 
         const records = await getPatientClinicalHistory({
             patientId,
@@ -86,10 +89,32 @@ const getDoctorClinicalHistoryController = async (req, res, next) => {
     }
 };
 
+const downloadClinicalRecordPdfController = async (req, res, next) => {
+    try {
+        const patientId = req.user._id;
+
+        const pdfBuffer = await buildClinicalRecordPdf({
+            recordId: req.params.recordId,
+            patientId,
+        });
+
+        res.set({
+            "Content-Type": "application/pdf",
+            "Content-Disposition": `attachment; filename="clinical-record-${req.params.recordId}.pdf"`,
+            "Content-Length": pdfBuffer.length,
+        });
+
+        return res.status(200).send(pdfBuffer);
+    } catch (error) {
+        next(error);
+    }
+};
+
 
 module.exports = {
     createClinicalRecordController,
     getClinicalRecordController,
     getMyClinicalHistoryController,
     getDoctorClinicalHistoryController,
+    downloadClinicalRecordPdfController,
 };
