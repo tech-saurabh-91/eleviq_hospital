@@ -50,7 +50,7 @@ export function ServicesSection({ content }: ServicesSectionProps) {
     {
       title: content.services[0]?.title || "ADHD/Anxiety Care",
       description: content.services[0]?.description || "Expert consultation and personalized treatment plans for ADHD and anxiety management",
-      image: "https://ext.same-assets.com/54593336/169712448.jpeg",
+      image: "/images/service/urgent-care.png",
       link: "/book",
       highlight: "Most Popular",
       isOutline: false
@@ -58,7 +58,7 @@ export function ServicesSection({ content }: ServicesSectionProps) {
     {
       title: content.services[1]?.title || "Pediatric Care",
       description: content.services[1]?.description || "Comprehensive medical care for your child's health and wellbeing",
-      image: "https://ext.same-assets.com/54593336/1876822310.jpeg",
+      image: "/images/service/primary-care.png",
       link: "/book", 
       highlight: "Quick Care",
       isOutline: false
@@ -66,7 +66,7 @@ export function ServicesSection({ content }: ServicesSectionProps) {
     {
       title: content.services[2]?.title || "Digital Forms",
       description: content.services[2]?.description || "Streamlined patient documentation and medical history forms",
-      image: "https://ext.same-assets.com/54593336/1300160112.png",
+      image: "/images/service/mental-health.png",
       link: "/forms",
       highlight: "Easy Access",
       isOutline: true

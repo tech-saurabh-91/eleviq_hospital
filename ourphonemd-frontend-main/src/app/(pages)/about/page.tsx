@@ -48,11 +48,11 @@ const features = [
 ]
 
 export default function AboutPage() {
-  
+
   const fadeIn = {
     hidden: { opacity: 0, y: 20 },
-    visible: { 
-      opacity: 1, 
+    visible: {
+      opacity: 1,
       y: 0,
       transition: { duration: 0.6 }
     }
@@ -85,18 +85,18 @@ export default function AboutPage() {
         <div className="absolute -top-10 right-10 w-64 h-64 bg-emerald-400 rounded-full opacity-10 blur-3xl"></div>
         <div className="absolute bottom-10 left-10 w-64 h-64 bg-teal-400 rounded-full opacity-10 blur-3xl"></div>
 
-        <motion.div 
+        <motion.div
           className="container max-w-7xl mx-auto px-4"
           initial="hidden"
           animate="visible"
           variants={fadeIn}
         >
           <div className="grid grid-cols-1 md:px-4 lg:grid-cols-2 gap-12 items-center  ">
-            <motion.div 
+            <motion.div
               className="space-y-6"
               variants={fadeIn}
             >
-              <motion.span 
+              <motion.span
                 className="inline-block px-4 py-1.5 bg-emerald-100 text-emerald-700 rounded-full text-sm font-medium"
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
@@ -104,45 +104,45 @@ export default function AboutPage() {
               >
                 Our Story
               </motion.span>
-              <motion.h1 
+              <motion.h1
                 className="text-4xl md:text-5xl font-bold text-slate-900 tracking-tight"
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.3, duration: 0.6 }}
               >
-                About <span className="text-customTeal">OurPhoneMD</span>
+                About <span className="text-customTeal">Eleviq Hospital</span>
               </motion.h1>
-              <motion.p 
+              <motion.p
                 className="text-xl text-slate-600 leading-relaxed"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.4, duration: 0.6 }}
               >
-                OurPhoneMD was created by Dr. Saifullah from Elizabethtown Kentucky, where he actively practices pediatric medicine at his Elizabethtown and Bardstown offices.
+                Eleviq Hospital was created by Upasana Yadhav from New Delhi, where he actively practices pediatric medicine at his Noida office.
               </motion.p>
-              <motion.p 
+              <motion.p
                 className="text-xl text-slate-600 leading-relaxed"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.5, duration: 0.6 }}
               >
-                When Dr. Saifullah came to Kentucky, he spent his first five years working in a family clinic, and then later narrowed his focus to pediatrics. For the last 25 years, Dr. Saifullah has always emphasized treating the whole family, parents as well as pediatric patients.
+                When Upasana Yadhav came to Delhi, she spent her first five years working in a family clinic, and then later narrowed his focus to pediatrics. For the last 25 years, Upasana Yadhav has always emphasized treating the whole family, parents as well as pediatric patients.
               </motion.p>
             </motion.div>
-            
-            <motion.div 
-              className="relative h-full w-full m-auto md:h-[400px] md:w-[400px] md:mr-auto  md:ml-16  rounded-2xl overflow-hidden shadow-2xl"
+
+            <motion.div
+              className="relative w-full max-w-[400px] h-[400px] mx-auto rounded-2xl overflow-hidden shadow-2xl"
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ delay: 0.3, duration: 0.6 }}
             >
               <div className=" text-center absolute inset-0 -z-10 bg-emerald-500/10 backdrop-blur-sm  rounded-2xl"></div>
               <Image
-                src="https://ext.same-assets.com/54593336/3227853396.bin"
-                alt="Dr. Saifullah"
-                width={500}
-                height={500}
-                className="object-contain w-full h-ful  m-auto md:mr-auto md:w-[450px]  rounded-2xl"
+                src="/images/team/upasana-yadhav.png"
+                alt="Upasana Yadhav"
+                fill
+                sizes="(max-width: 768px) 100vw, 400px"
+                className="object-cover object-top rounded-2xl"
               />
             </motion.div>
           </div>
@@ -152,9 +152,9 @@ export default function AboutPage() {
       {/* Mission & Vision Section */}
       <section className="py-16 relative overflow-hidden">
         <div className="absolute top-40 left-0 w-72 h-72 bg-emerald-100 rounded-full opacity-30 blur-3xl -translate-x-1/2"></div>
-        
+
         <div className="max-w-7xl mx-auto px-4 md:px-6">
-          <motion.div 
+          <motion.div
             className="text-center mb-16"
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
@@ -168,9 +168,9 @@ export default function AboutPage() {
               We&apos;re committed to making healthcare accessible, affordable, and convenient while maintaining quality and personalization
             </p>
           </motion.div>
-          
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-12">
-            <motion.div 
+            <motion.div
               className="relative"
               initial={{ opacity: 0, y: 30 }}
               whileInView={{ opacity: 1, y: 0 }}
@@ -187,7 +187,7 @@ export default function AboutPage() {
                 </CardHeader>
                 <CardContent className="space-y-4 text-slate-600">
                   <p>
-                    OurPhoneMD came from the passion of being a resource for the entire family. Dr. Saifullah and his staff of providers are all board certified and passionate about providing quality efficient care for your family.
+                    Eleviq Hospital came from the passion of being a resource for the entire family. Upasana Yadhav and his staff of providers are all board certified and passionate about providing quality efficient care for your family.
                   </p>
                   <p>
                     We believe in making healthcare accessible, affordable, and convenient for all Kentuckians, while maintaining the personal touch of traditional healthcare.
@@ -196,7 +196,7 @@ export default function AboutPage() {
               </Card>
             </motion.div>
 
-            <motion.div 
+            <motion.div
               className="relative"
               initial={{ opacity: 0, y: 30 }}
               whileInView={{ opacity: 1, y: 0 }}
@@ -213,10 +213,10 @@ export default function AboutPage() {
                 </CardHeader>
                 <CardContent className="space-y-4 text-slate-600">
                   <p>
-                    OurPhoneMD was created in response to patients&apos; busy schedules, insurance premiums, and ever higher deductibles. This service allows families to save time, money, and trips to the ER and urgent care facilities.
+                    Eleviq Hospital was created in response to patients&apos; busy schedules, insurance premiums, and ever higher deductibles. This service allows families to save time, money, and trips to the ER and urgent care facilities.
                   </p>
                   <p>
-                    Unlike other online telemedicine services, OurPhoneMD was created for Kentuckians. This allows us to provide more personal one-on-one care. The OurPhoneMD experience is more similar to your traditional doctor&apos;s office.
+                    Unlike other online telemedicine services, Eleviq Hospital was created for New Delhi. This allows us to provide more personal one-on-one care. The Eleviq Hospital experience is more similar to your traditional doctor&apos;s office.
                   </p>
                 </CardContent>
               </Card>
@@ -228,16 +228,16 @@ export default function AboutPage() {
       {/* What Makes Us Different Section */}
       <section className="py-14 bg-gradient-to-b from-slate-50 to-white relative overflow-hidden">
         <div className="absolute bottom-0 right-0 w-96 h-96 bg-emerald-200 rounded-full opacity-20 blur-3xl translate-x-1/3 translate-y-1/3"></div>
-        
+
         <div className="max-w-7xl mx-auto px-4 md:px-6 relative z-10">
-          <motion.div 
+          <motion.div
             className="text-center mb-12 max-w-3xl mx-auto"
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.6 }}
           >
-            <motion.div 
+            <motion.div
               className="inline-flex items-center -mt-2 justify-center h-10 px-4 py-2 bg-emerald-100 text-emerald-700 rounded-full mb-5 font-medium"
               initial={{ opacity: 0, scale: 0.9 }}
               whileInView={{ opacity: 1, scale: 1 }}
@@ -247,16 +247,16 @@ export default function AboutPage() {
               <Sparkles className="h-4 w-4 mr-2" />
               Our Unique Approach
             </motion.div>
-            
+
             <h2 className="text-3xl md:text-4xl font-bold text-slate-900 mb-4">
               What Makes Us <span className="text-customTeal">Different</span>
             </h2>
             <p className="text-xl text-slate-600">
-              At OurPhoneMD, we focus on providing personalized care that meets the unique needs of each patient and family
+              At Eleviq Hospital, we focus on providing personalized care that meets the unique needs of each patient and family
             </p>
           </motion.div>
 
-          <motion.div 
+          <motion.div
             className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8"
             variants={staggerChildren}
             initial="hidden"
@@ -264,7 +264,7 @@ export default function AboutPage() {
             viewport={{ once: true }}
           >
             {features?.map((feature, index) => (
-              <motion.div 
+              <motion.div
                 key={index}
                 variants={itemFade}
                 className="group"
@@ -295,7 +295,7 @@ export default function AboutPage() {
         <div className="absolute top-1/3 left-1/3 w-40 h-40 bg-emerald-300 rounded-full opacity-20 blur-3xl"></div>
         <div className="container max-w-7xl mx-auto px-4">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
-            <motion.div 
+            <motion.div
               className="space-y-8"
               initial={{ opacity: 0, x: -30 }}
               whileInView={{ opacity: 1, x: 0 }}
@@ -303,7 +303,7 @@ export default function AboutPage() {
               transition={{ duration: 0.6 }}
             >
               <div>
-                <motion.div 
+                <motion.div
                   className="inline-block px-4 py-1.5 bg-emerald-100 text-emerald-700 rounded-full text-sm font-medium mb-4"
                   initial={{ opacity: 0, x: -20 }}
                   whileInView={{ opacity: 1, x: 0 }}
@@ -316,7 +316,7 @@ export default function AboutPage() {
                   About Our <span className="text-customTeal">Founder</span>
                 </h2>
                 <p className="text-lg text-slate-600 leading-relaxed">
-                  Dr. Saifullah has over 25 years of experience in healthcare, with a focus on pediatric medicine. He practices at his clinics in Elizabethtown and Bardstown, Kentucky.
+                  Upasana Yadhav has over 25 years of experience in healthcare, with a focus on pediatric medicine. He practices at his clinics in Noida, New Delhi.
                 </p>
               </div>
 
@@ -324,8 +324,8 @@ export default function AboutPage() {
                 <h3 className="text-xl font-semibold text-slate-900">Education & Credentials</h3>
                 <ul className="space-y-3">
                   {["Board Certified Physician", "Specialized in Pediatric Medicine", "25+ Years of Medical Experience"].map((item, index) => (
-                    <motion.li 
-                      key={index} 
+                    <motion.li
+                      key={index}
                       className="flex items-start gap-3"
                       initial={{ opacity: 0, x: -20 }}
                       whileInView={{ opacity: 1, x: 0 }}
@@ -344,19 +344,19 @@ export default function AboutPage() {
               <div className="space-y-4">
                 <h3 className="text-xl font-semibold text-slate-900">Philosophy</h3>
                 <p className="text-slate-600">
-                  Dr. Saifullah believes in treating the whole family and has always emphasized a patient-centered approach to healthcare. He founded OurPhoneMD to make quality healthcare more accessible to Kentucky families.
+                  Upasana Yadhav believes in treating the whole family and has always emphasized a patient-centered approach to healthcare. He founded Eleviq Hospital to make quality healthcare more accessible to New Delhi families.
                 </p>
               </div>
             </motion.div>
 
-            <motion.div 
+            <motion.div
               className="grid grid-cols-4 grid-rows-2 gap-4"
               initial={{ opacity: 0, scale: 0.95 }}
               whileInView={{ opacity: 1, scale: 1 }}
               viewport={{ once: true }}
               transition={{ duration: 0.6 }}
             >
-              <motion.div 
+              <motion.div
                 className="col-span-2 row-span-2 rounded-2xl overflow-hidden shadow-lg"
                 whileHover={{ scale: 1.02 }}
                 transition={{ duration: 0.3 }}
@@ -369,7 +369,7 @@ export default function AboutPage() {
                   className="object-cover w-full h-full"
                 />
               </motion.div>
-              <motion.div 
+              <motion.div
                 className="col-span-2 rounded-2xl overflow-hidden shadow-lg"
                 whileHover={{ scale: 1.02 }}
                 transition={{ duration: 0.3 }}
@@ -382,7 +382,7 @@ export default function AboutPage() {
                   className="object-cover w-full h-full"
                 />
               </motion.div>
-              <motion.div 
+              <motion.div
                 className="col-span-2 rounded-2xl overflow-hidden shadow-lg"
                 whileHover={{ scale: 1.02 }}
                 transition={{ duration: 0.3 }}
@@ -403,16 +403,16 @@ export default function AboutPage() {
       {/* Our Team Section */}
       <section className="py-12 bg-gradient-to-b from-emerald-50 to-white relative overflow-hidden">
         <div className="absolute top-0 right-0 w-96 h-96 bg-emerald-200 rounded-full opacity-20 blur-3xl translate-x-1/2 -translate-y-1/2"></div>
-        
+
         <div className="container max-w-7xl mx-auto px-4 relative z-10">
-          <motion.div 
+          <motion.div
             className="text-center mb-16"
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.6 }}
           >
-            <motion.div 
+            <motion.div
               className="inline-flex items-center justify-center h-16 w-16 rounded-full bg-emerald-100 mb-6"
               initial={{ opacity: 0, scale: 0.8 }}
               whileInView={{ opacity: 1, scale: 1 }}
@@ -421,7 +421,7 @@ export default function AboutPage() {
             >
               <Users className="h-8 w-8 text-customTeal" />
             </motion.div>
-            
+
             <h2 className="text-3xl md:text-4xl font-bold text-slate-900 mb-4 -mt-2">
               Our <span className="text-customTeal">Team</span>
             </h2>
@@ -430,33 +430,33 @@ export default function AboutPage() {
             </p>
           </motion.div>
 
-          <motion.div 
+          <motion.div
             className="grid grid-cols-1 md:grid-cols-3 gap-8"
             variants={staggerChildren}
             initial="hidden"
             whileInView="visible"
             viewport={{ once: true }}
           >
-            <motion.div 
+            <motion.div
               variants={itemFade}
               whileHover={{ y: -10, transition: { duration: 0.2 } }}
             >
               <Card className="border-none shadow-xl overflow-hidden h-full">
                 <div className="h-72 relative">
                   <Image
-                    src="https://ext.same-assets.com/54593336/3227853396.bin"
-                    alt="Dr. Saifullah"
+                    src="/images/team/upasana-yadhav.png"
+                    alt="Upasana Yadhav"
                     fill
                     className="object-cover object-top"
                   />
                 </div>
                 <CardHeader className="bg-white">
-                  <CardTitle className="text-xl text-slate-900">Dr. Saifullah</CardTitle>
-                  <CardDescription className="text-emerald-600 font-medium">Founder & Pediatrician</CardDescription>
+                  <CardTitle className="text-xl text-slate-900">Upasana Yadhav</CardTitle>
+                  <CardDescription className="text-emerald-600 font-medium">Founder</CardDescription>
                 </CardHeader>
                 <CardContent className="bg-white">
                   <p className="text-slate-600">
-                    With over 25 years of experience in pediatric medicine, Dr. Saifullah leads our team with a passion for family-centered care.
+                    With over 25 years of experience in medicine, Upasana Yadhav leads our team with a passion for family-centered care.
                   </p>
                 </CardContent>
               </Card>
@@ -510,7 +510,7 @@ export default function AboutPage() {
       </section>
 
       {/* CTA Section */}
-      <motion.section 
+      <motion.section
         className="py-16 md:py-20 bg-gradient-to-br from-customTeal to-teal-800 text-white relative overflow-hidden mb-12"
         initial={{ opacity: 0 }}
         whileInView={{ opacity: 1 }}
@@ -520,16 +520,16 @@ export default function AboutPage() {
         <div className="absolute top-0 left-0 w-full h-full bg-[url('/grid-pattern.png')] opacity-10"></div>
         <div className="absolute -top-40 -right-40 w-80 h-80 bg-customTeal rounded-full opacity-20 blur-3xl"></div>
         <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-teal-400 rounded-full opacity-20 blur-3xl"></div>
-        
+
         <div className="container max-w-5xl mx-auto px-4 relative z-10">
-          <motion.div 
+          <motion.div
             className="text-center max-w-3xl mx-auto space-y-6"
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.6 }}
           >
-            <motion.h2 
+            <motion.h2
               className="text-3xl md:text-4xl lg:text-5xl font-bold"
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
@@ -538,33 +538,33 @@ export default function AboutPage() {
             >
               Ready to experience our care?
             </motion.h2>
-            <motion.p 
+            <motion.p
               className="text-xl opacity-90"
               initial={{ opacity: 0 }}
               whileInView={{ opacity: 1 }}
               viewport={{ once: true }}
               transition={{ delay: 0.3, duration: 0.6 }}
             >
-              Join thousands of Kentucky families who trust OurPhoneMD for their healthcare needs.
+              Join thousands of New Delhi families who trust Eleviq Hospital for their healthcare needs.
             </motion.p>
-            <motion.div 
+            <motion.div
               className="pt-6 flex flex-wrap justify-center gap-4"
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ delay: 0.4, duration: 0.6 }}
             >
-              <Button 
-                asChild 
-                size="lg" 
+              <Button
+                asChild
+                size="lg"
                 className="bg-white text-emerald-700 hover:bg-emerald-50 transition-all duration-300 shadow-lg hover:shadow-xl"
               >
                 <Link href="/book">Book Appointment</Link>
               </Button>
-              <Button 
-                asChild 
-                size="lg" 
-                variant="outline" 
+              <Button
+                asChild
+                size="lg"
+                variant="outline"
                 className="bg-emerald-700/20 hover:bg-emerald-700/30 transition-all duration-300 border-white/70 hover:border-white text-white shadow-lg hover:shadow-xl"
               >
                 <Link href="/contact">Contact Us</Link>

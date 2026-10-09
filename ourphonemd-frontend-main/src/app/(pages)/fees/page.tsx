@@ -2,8 +2,8 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 
 export const metadata = {
-  title: "Fee Schedule | OurPhoneMD - Modern Telemedicine Solutions",
-  description: "View OurPhoneMD's fee schedule and payment options for telemedicine services.",
+  title: "Fee Schedule | Eleviq Hospital - Modern Telemedicine Solutions",
+  description: "View Eleviq Hospital's fee schedule and payment options for telemedicine services.",
 };
 
 export default function FeesPage() {

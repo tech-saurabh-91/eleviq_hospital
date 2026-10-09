@@ -8,6 +8,10 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useFamilyMember } from "@/hooks/useFamilyMember";
+import {
+  formatFamilyDateInput,
+  isValidPastFamilyDate,
+} from "@/lib/family-member";
 
 const relationshipOptions = [
   { value: "father", label: "Father" },
@@ -71,20 +75,8 @@ export default function AddFamilyMemberPage() {
 
     setForm((prev) => ({
       ...prev,
-      [name]: value,
+      [name]: name === "dateOfBirth" ? formatFamilyDateInput(value) : value,
     }));
-  };
-
-  const formatDateForBackend = (value: string) => {
-    if (!value) return "";
-
-    const [year, month, day] = value.split("-");
-
-    if (!year || !month || !day) {
-      return "";
-    }
-
-    return `${month}/${day}/${year}`;
   };
 
   const validateForm = () => {
@@ -141,11 +133,8 @@ export default function AddFamilyMemberPage() {
       return "Date of birth is required";
     }
 
-    const selectedDate = new Date(form.dateOfBirth);
-    const today = new Date();
-
-    if (selectedDate > today) {
-      return "Date of birth cannot be in the future";
+    if (!isValidPastFamilyDate(form.dateOfBirth)) {
+      return "Enter a valid past date in DD/MM/YYYY format";
     }
 
     if (!form.gender) {
@@ -166,8 +155,8 @@ export default function AddFamilyMemberPage() {
       return "Phone number is required";
     }
 
-    if (!/^\+?[0-9]{10}$/.test(phone)) {
-      return "Phone number must contain 10 digits";
+    if (!/^[6-9][0-9]{9}$/.test(phone)) {
+      return "Enter a valid 10-digit mobile number";
     }
 
     if (!street) {
@@ -182,24 +171,32 @@ export default function AddFamilyMemberPage() {
       return "City is required";
     }
 
-    if (city.length > 100) {
-      return "City must be 100 characters or less";
+    if (city.length < 2) {
+      return "City must contain at least 2 characters";
+    }
+
+    if (!/^[A-Za-zÀ-ÿ][A-Za-zÀ-ÿ .'-]*$/.test(city)) {
+      return "City contains invalid characters";
     }
 
     if (!state) {
       return "State is required";
     }
 
-    if (state.length > 100) {
-      return "State must be 100 characters or less";
+    if (state.length < 2) {
+      return "State must contain at least 2 characters";
+    }
+
+    if (!/^[A-Za-zÀ-ÿ][A-Za-zÀ-ÿ .'-]*$/.test(state)) {
+      return "State contains invalid characters";
     }
 
     if (!zipCode) {
       return "PIN code is required";
     }
 
-    if (!/^[0-9]{6}$/.test(zipCode)) {
-      return "PIN code must contain 6 digits";
+    if (!/^[1-9][0-9]{5}$/.test(zipCode)) {
+      return "PIN code must contain 6 digits and cannot start with 0";
     }
 
     return "";
@@ -233,9 +230,7 @@ export default function AddFamilyMemberPage() {
 
         relationship: form.relationship,
 
-        dateOfBirth: formatDateForBackend(
-          form.dateOfBirth
-        ),
+        dateOfBirth: form.dateOfBirth,
 
         gender: form.gender,
 
@@ -414,10 +409,13 @@ export default function AddFamilyMemberPage() {
                 </label>
 
                 <Input
-                  type="date"
+                  type="text"
                   name="dateOfBirth"
                   value={form.dateOfBirth}
                   onChange={handleChange}
+                  placeholder="DD/MM/YYYY"
+                  inputMode="numeric"
+                  maxLength={10}
                 />
               </div>
 
@@ -480,6 +478,7 @@ export default function AddFamilyMemberPage() {
                   onChange={handleChange}
                   placeholder="Enter phone number"
                   maxLength={10}
+                  inputMode="numeric"
                 />
               </div>
             </div>

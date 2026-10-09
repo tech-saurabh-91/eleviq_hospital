@@ -55,7 +55,7 @@ export default function FaqPage() {
     },
     {
       question: "Can PhoneMD providers treat both adults/children?",
-      answer: "Yes, we have unrestricted Kentucky medical licenses and can see all ages. We want to be your family health resource!"
+      answer: "Yes, we have unrestricted New Delhi medical licenses and can see all ages. We want to be your family health resource!"
     },
     {
       question: "Do I need a separate call for my spouse/children?",

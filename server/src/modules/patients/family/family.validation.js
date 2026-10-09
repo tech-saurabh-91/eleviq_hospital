@@ -1,5 +1,19 @@
 const { z } = require("zod");
 
+const nameSchema = z
+    .string()
+    .trim()
+    .min(1, "This field is required")
+    .max(50, "Must be 50 characters or less")
+    .regex(/^[A-Za-zÀ-ÿ\s'-]+$/, "Contains invalid characters");
+
+const locationNameSchema = z
+    .string()
+    .trim()
+    .min(2, "This field is required")
+    .max(100, "Must be 100 characters or less")
+    .regex(/^[A-Za-zÀ-ÿ][A-Za-zÀ-ÿ .'-]*$/, "Contains invalid characters");
+
 const relationshipSchema = z.enum([
     "father",
     "mother",
@@ -22,22 +36,17 @@ const addressSchema = z
         street: z
             .string()
             .trim()
-            .min(1, "Street address is required"),
+            .min(1, "Street address is required")
+            .max(200, "Street address must be 200 characters or less"),
 
-        city: z
-            .string()
-            .trim()
-            .min(1, "City is required"),
+        city: locationNameSchema,
 
-        state: z
-            .string()
-            .trim()
-            .min(1, "State is required"),
+        state: locationNameSchema,
 
         zipCode: z
             .string()
             .trim()
-            .min(1, "ZIP code is required"),
+            .regex(/^[1-9]\d{5}$/, "PIN code must contain 6 digits and cannot start with 0"),
     })
     .strict();
 
@@ -45,35 +54,44 @@ const dateOfBirthSchema = z
     .string()
     .trim()
     .regex(
-        /^(0[1-9]|1[0-2])\/(0[1-9]|[12]\d|3[01])\/\d{4}$/,
-        "Date of birth must be MM/DD/YYYY"
-    );
+        /^(0[1-9]|[12]\d|3[01])\/(0[1-9]|1[0-2])\/\d{4}$/,
+        "Date of birth must be DD/MM/YYYY"
+    )
+    .refine((value) => {
+        const [day, month, year] = value.split("/").map(Number);
+        const date = new Date(Date.UTC(year, month - 1, day));
+
+        return date.getUTCFullYear() === year &&
+            date.getUTCMonth() === month - 1 &&
+            date.getUTCDate() === day;
+    }, "Date of birth must be a real calendar date")
+    .refine((value) => {
+        const [day, month, year] = value.split("/").map(Number);
+        const date = Date.UTC(year, month - 1, day);
+        const now = new Date();
+        const today = Date.UTC(now.getFullYear(), now.getMonth(), now.getDate());
+
+        return date <= today;
+    }, "Date of birth cannot be in the future");
 
 const createFamilyMemberSchema = z
     .object({
-        firstName: z
-            .string()
-            .trim()
-            .min(1, "First name is required"),
+        firstName: nameSchema,
 
         middleName: z
             .string()
             .trim()
+            .max(50, "Middle name must be 50 characters or less")
+            .regex(/^[A-Za-zÀ-ÿ\s'-]*$/, "Middle name contains invalid characters")
             .optional(),
 
-        lastName: z
-            .string()
-            .trim()
-            .min(1, "Last name is required"),
+        lastName: nameSchema,
 
         relationship: relationshipSchema,
 
         dateOfBirth: dateOfBirthSchema,
 
-        gender: z
-            .string()
-            .trim()
-            .min(1, "Gender is required"),
+        gender: z.enum(["male", "female", "other"]),
 
         address: addressSchema,
 
@@ -86,7 +104,7 @@ const createFamilyMemberSchema = z
         phone: z
             .string()
             .trim()
-            .min(1, "Phone number is required"),
+            .regex(/^[6-9]\d{9}$/, "Enter a valid 10-digit mobile number"),
 
         insuranceCoverage: z
             .enum(["patient", "own"])
@@ -96,32 +114,22 @@ const createFamilyMemberSchema = z
 
 const updateFamilyMemberSchema = z
     .object({
-        firstName: z
-            .string()
-            .trim()
-            .min(1)
-            .optional(),
+        firstName: nameSchema.optional(),
 
         middleName: z
             .string()
             .trim()
+            .max(50)
+            .regex(/^[A-Za-zÀ-ÿ\s'-]*$/)
             .optional(),
 
-        lastName: z
-            .string()
-            .trim()
-            .min(1)
-            .optional(),
+        lastName: nameSchema.optional(),
 
         relationship: relationshipSchema,
 
         dateOfBirth: dateOfBirthSchema.optional(),
 
-        gender: z
-            .string()
-            .trim()
-            .min(1)
-            .optional(),
+        gender: z.enum(["male", "female", "other"]).optional(),
 
         address: addressSchema.partial().optional(),
 
@@ -135,7 +143,7 @@ const updateFamilyMemberSchema = z
         phone: z
             .string()
             .trim()
-            .min(1)
+            .regex(/^[6-9]\d{9}$/, "Enter a valid 10-digit mobile number")
             .optional(),
 
         insuranceCoverage: z

@@ -1,15 +1,23 @@
 
 
 export interface FamilyMember {
-    id: string;
+    familyMemberId: string;
     firstName: string;
+    middleName?: string;
     lastName: string;
     email: string;
-    phoneNumber: string;
+    phone: string;
     dateOfBirth: string;
-    gender: 'Male' | 'Female' | 'Other';
+    gender: 'male' | 'female' | 'other';
     relationship: string;
-    insurance?: any
+    address: {
+        street: string;
+        city: string;
+        state: string;
+        zipCode: string;
+    };
+    insuranceCoverage: 'patient' | 'own';
+    status: 'active' | 'inactive';
     createdAt: string;
     updatedAt: string;
-  }
+}

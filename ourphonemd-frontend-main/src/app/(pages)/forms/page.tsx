@@ -2,8 +2,8 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 
 export const metadata = {
-  title: "Patient Forms | OurPhoneMD - Modern Telemedicine Solutions",
-  description: "Access and download patient forms for OurPhoneMD telemedicine services.",
+  title: "Patient Forms | Eleviq Hospital - Modern Telemedicine Solutions",
+  description: "Access and download patient forms for Eleviq Hospital telemedicine services.",
 };
 
 export default function FormsPage() {

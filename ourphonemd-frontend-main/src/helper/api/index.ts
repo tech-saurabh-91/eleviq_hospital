@@ -93,8 +93,8 @@ export const PATIENT_TELEMEDICINE_API = {
 
 
 export const PATIENT_PROFILE_API = {
-  GET: `${BASE_URL}/patient/me`,
-  UPDATE: `${BASE_URL}/patient/profile`,
+  GET: `${BASE_URL}/patients/me`,
+  UPDATE: `${BASE_URL}/patients/me`,
 };
 
 

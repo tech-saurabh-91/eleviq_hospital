@@ -2,10 +2,10 @@
 
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { 
-  Sheet, 
-  SheetContent, 
-  SheetTrigger 
+import {
+  Sheet,
+  SheetContent,
+  SheetTrigger
 } from "@/components/ui/sheet";
 import { Menu } from "lucide-react";
 import { motion } from "framer-motion";
@@ -20,7 +20,7 @@ export function MobileNav() {
         </Button>
       </SheetTrigger>
       <SheetContent side="right" className="border-l-emerald-200">
-        <motion.div 
+        <motion.div
           className="flex flex-col gap-4 mt-8"
           initial={{ opacity: 0, x: 20 }}
           animate={{ opacity: 1, x: 0 }}
@@ -51,21 +51,20 @@ export function MobileNav() {
             CONTACT US
           </Link>
           <Link
-            href="https://ourphonemd.com/ords/f?p=191:145"
+            href="/staff-login"
             className="text-lg font-medium transition-colors hover:text-emerald-600"
-            target="_blank"
           >
-            PROVIDER LOGIN
+            STAFF LOGIN
           </Link>
 
           <div className="mt-6 space-y-2">
             <Button asChild className="w-full bg-emerald-600 hover:bg-emerald-700">
-              <Link href="https://ourphonemd.com/ords/f?p=191:9999">
+              <Link href="https://Eleviq Hospital.com/ords/f?p=191:9999">
                 LOGIN
               </Link>
             </Button>
             <Button asChild variant="outline" className="w-full border-emerald-600 text-emerald-600 hover:bg-emerald-50">
-              <Link href="https://ourphonemd.com/ords/f?p=191:214">
+              <Link href="https://Eleviq Hospital.com/ords/f?p=191:214">
                 SIGN UP
               </Link>
             </Button>

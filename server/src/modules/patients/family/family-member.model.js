@@ -52,7 +52,7 @@ const familyMemberSchema = new mongoose.Schema(
         dateOfBirth: {
             type: String,
             required: true,
-            match: /^(0[1-9]|1[0-2])\/(0[1-9]|[12]\d|3[01])\/\d{4}$/,
+            match: /^(0[1-9]|[12]\d|3[01])\/(0[1-9]|1[0-2])\/\d{4}$/,
         },
 
         gender: {

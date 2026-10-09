@@ -25,7 +25,7 @@ const SignInPage = () => {
         {/* Support Info */}
         <div className="mt-8 text-center">
           <p className="font-bold text-red-600 text-sm">CUSTOMER SUPPORT/APPOINTMENT BY PHONE</p>
-          <p className="font-bold text-gray-900">(270) 769-0110</p>
+          <p className="font-bold text-gray-900">9654663440</p>
         </div>
       </div>
     </div>

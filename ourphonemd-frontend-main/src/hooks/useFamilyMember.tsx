@@ -3,6 +3,7 @@
 import { PATIENT_FAMILY_API } from "@/helper/api";
 import { FamilyMember } from "@/types/familymember";
 import api from "@/helper/axios";
+import { AxiosError } from "axios";
 import { useState } from "react";
 
 export const useFamilyMember = () => {
@@ -26,7 +27,11 @@ export const useFamilyMember = () => {
       return data;
     } catch (error) {
       console.error("Error fetching family members:", error);
-      setError("Failed to fetch family members");
+      const message = error instanceof AxiosError
+        ? error.response?.data?.message
+        : undefined;
+
+      setError(message || "Unable to load family members.");
 
       return [];
     } finally {

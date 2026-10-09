@@ -66,7 +66,7 @@ export function PatientSidebar() {
       </SidebarContent>
 
       <SidebarFooter>
-        <div className="text-xs text-emerald-600/70 px-2 py-1">© 2025 OurPhoneMD</div>
+        <div className="text-xs text-emerald-600/70 px-2 py-1">© 2025 Eleviq Hospital</div>
       </SidebarFooter>
     </Sidebar>
   )

@@ -348,11 +348,31 @@ export function Step4ProfileCreation() {
 
                   <FormControl>
                     <Input
-                      type="date"
-                      placeholder="mm/dd/yyyy"
-                      {...field}
-                      className="border border-gray-300 rounded-md"
-                    />
+  type="date"
+  max={new Date().toISOString().slice(0, 10)}
+  {...field}
+  value={field.value ?? ""}
+  onChange={(e) => {
+    const value = e.target.value;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    if (!value) {
+      field.onChange("");
+      return;
+    }
+
+    const selectedDate = new Date(`${value}T00:00:00`);
+
+    if (selectedDate > today) {
+      field.onChange("");
+      return;
+    }
+
+    field.onChange(value);
+  }}
+  className="border border-gray-300 rounded-md"
+/>
                   </FormControl>
 
                   <FormMessage />
@@ -429,9 +449,15 @@ export function Step4ProfileCreation() {
                     <Input
                       type="tel"
                       inputMode="numeric"
+                      autoComplete="tel-national"
                       placeholder="Enter 10-digit mobile number"
                       maxLength={10}
-                      {...field}
+                      value={field.value ?? ""}
+                      onChange={(event) => {
+                        field.onChange(
+                          event.target.value.replace(/\D/g, "").slice(0, 10)
+                        );
+                      }}
                       className="border border-gray-300 rounded-md"
                     />
                   </FormControl>
@@ -456,9 +482,15 @@ export function Step4ProfileCreation() {
                     <Input
                       type="tel"
                       inputMode="numeric"
+                      autoComplete="tel-national"
                       placeholder="Enter 10-digit mobile number"
                       maxLength={10}
-                      {...field}
+                      value={field.value ?? ""}
+                      onChange={(event) => {
+                        field.onChange(
+                          event.target.value.replace(/\D/g, "").slice(0, 10)
+                        );
+                      }}
                       className="border border-gray-300 rounded-md"
                     />
                   </FormControl>
@@ -503,53 +535,6 @@ export function Step4ProfileCreation() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {/* City */}
-            <div>
-              <FormField
-                control={control}
-                name="city"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="text-customTeal font-medium">
-                      City
-                    </FormLabel>
-
-                    <Select
-                      onValueChange={field.onChange}
-                      value={field.value || ""}
-                      disabled={!selectedState || loadingCities}
-                    >
-                      <FormControl>
-                        <SelectTrigger className="border border-gray-300 rounded-md">
-                          <SelectValue
-                            placeholder={
-                              !selectedState
-                                ? "Select state first"
-                                : loadingCities
-                                  ? "Loading cities..."
-                                  : "Select city"
-                            }
-                          />
-                        </SelectTrigger>
-                      </FormControl>
-
-                      <SelectContent>
-                        {cities.map((city) => (
-                          <SelectItem
-                            key={city.localBodyCode}
-                            value={city.cityName}
-                          >
-                            {city.cityName}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
 
             {/* State */}
             <div>
@@ -608,6 +593,54 @@ export function Step4ProfileCreation() {
               />
             </div>
 
+            {/* City */}
+            <div>
+              <FormField
+                control={control}
+                name="city"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-customTeal font-medium">
+                      City
+                    </FormLabel>
+
+                    <Select
+                      onValueChange={field.onChange}
+                      value={field.value || ""}
+                      disabled={!selectedState || loadingCities}
+                    >
+                      <FormControl>
+                        <SelectTrigger className="border border-gray-300 rounded-md">
+                          <SelectValue
+                            placeholder={
+                              !selectedState
+                                ? "Select state first"
+                                : loadingCities
+                                  ? "Loading cities..."
+                                  : "Select city"
+                            }
+                          />
+                        </SelectTrigger>
+                      </FormControl>
+
+                      <SelectContent>
+                        {cities.map((city) => (
+                          <SelectItem
+                            key={city.localBodyCode}
+                            value={city.cityName}
+                          >
+                            {city.cityName}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+
             {/* PIN Code */}
             <div>
               <FormField
@@ -625,7 +658,12 @@ export function Step4ProfileCreation() {
                         inputMode="numeric"
                         maxLength={6}
                         placeholder="Enter 6-digit PIN code"
-                        {...field}
+                        value={field.value ?? ""}
+                        onChange={(event) => {
+                          field.onChange(
+                            event.target.value.replace(/\D/g, "").slice(0, 6)
+                          );
+                        }}
                         className="border border-gray-300 rounded-md"
                       />
                     </FormControl>

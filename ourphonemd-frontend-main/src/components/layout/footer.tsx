@@ -22,37 +22,37 @@ const guideVideos = [
 const contactInfo = [
   { 
     icon: MapPin, 
-    content: "103 Financial Dr, Elizabethtown, KY 42701, United States",
-    href: "https://maps.google.com/?q=103+Financial+Dr,+Elizabethtown,+KY+42701"
+    content: "Noida, Uttar Pradesh, India",
+    href: "https://maps.google.com/?q=103+Financial+Dr,+Noida,+KY+42701"
   },
   { 
     icon: Phone, 
-    content: "(270) 769-0110",
-    href: "tel:(270)769-0110"
+    content: "9654663440",
+    href: "9654663440"
   },
   { 
     icon: Mail, 
-    content: "Inquiry.OPMD@yahoo.com",
-    href: "mailto:Inquiry.OPMD@yahoo.com"
+    content: "info@eleviqtechnologies.com",
+    href: "mailto:info@eleviqtechnologies.com"
   }
 ];
 
 const socialLinks = [
   { 
     icon: Youtube, 
-    href: "https://www.youtube.com/@adminourphonemd6366", 
+    href: "https://www.youtube.com/@adminEleviq Hospital6366", 
     label: "YouTube",
     bgColor: "bg-red-500 hover:bg-red-600"
   },
   { 
     icon: Facebook, 
-    href: "https://www.facebook.com/p/Ourphonemdcom-100064240503186/", 
+    href: "https://www.facebook.com/p/Eleviq Hospitalcom-100064240503186/", 
     label: "Facebook",
     bgColor: "bg-blue-600 hover:bg-blue-700"
   },
   { 
     icon: Twitter, 
-    href: "https://www.twitter.com/p/Ourphonemdcom-100064240503186/", 
+    href: "https://www.twitter.com/p/Eleviq Hospitalcom-100064240503186/", 
     label: "Twitter",
     bgColor: "bg-sky-500 hover:bg-sky-600"
   },
@@ -82,7 +82,7 @@ export default function Footer() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-10">
             {/* Company Info */}
             <div>
-              <h2 className="text-xl font-bold text-white mb-4">OurPhoneMD</h2>
+              <h2 className="text-xl font-bold text-white mb-4">Eleviq Hospital</h2>
               <p className="text-slate-400 text-sm leading-relaxed mb-6">
                 Providing accessible and affordable healthcare solutions through telemedicine, ensuring quality care for you and your family.
               </p>
@@ -171,7 +171,7 @@ export default function Footer() {
           <div className="mt-4 pb-4  border-t border-slate-800/60">
             <div className=" flex flex-col sm:flex-row justify-between items-center">
               <p className="text-sm text-slate-500">
-                © {currentYear} OurPhoneMD. All rights reserved.
+                © {currentYear} Eleviq Hospital. All rights reserved.
               </p>
               
               <div className="mt-4 sm:mt-0 flex items-center space-x-6">

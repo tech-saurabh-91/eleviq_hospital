@@ -197,54 +197,73 @@ const accountInformationSchema = z.object({
             "Password must contain a special character"
         ),
 
-    firstName: z
-        .string()
+    firstName: z.string()
         .trim()
-        .min(1, "First name is required"),
+        .min(1, "First name is required")
+        .max(80, "Name must not exceed 80 characters")
+        .regex(
+            /^[\p{L}]+(?:[ '-][\p{L}]+)*$/u,
+            "Enter a valid first name"
+        ),
 
-    middleName: z
-        .string()
+    middleName: z.string()
         .trim()
+        .max(80, "Name must not exceed 80 characters")
+        .refine(
+            (value) => value === "" ||
+                /^[\p{L}]+(?:[ '-][\p{L}]+)*$/u.test(value),
+            "Enter a valid middle name"
+        )
         .optional(),
 
-    lastName: z
-        .string()
+    lastName: z.string()
         .trim()
-        .min(1, "Last name is required"),
-
-    dateOfBirth: z
-        .string()
-        .trim()
+        .min(1, "Last name is required")
+        .max(80, "Name must not exceed 80 characters")
         .regex(
-            /^\d{4}-\d{2}-\d{2}$/,
-            "Date of birth must be in YYYY-MM-DD format"),
+            /^[\p{L}]+(?:[ '-][\p{L}]+)*$/u,
+            "Enter a valid last name"
+        ),
+
+    dateOfBirth: z.string()
+        .regex(/^\d{4}-\d{2}-\d{2}$/, "Use YYYY-MM-DD format")
+        .refine((value) => {
+            const [year, month, day] = value.split("-").map(Number);
+            const date = new Date(Date.UTC(year, month - 1, day));
+            const today = new Date(
+                new Date().toISOString().slice(0, 10) + "T00:00:00.000Z"
+            );
+
+            return (
+                date.getUTCFullYear() === year &&
+                date.getUTCMonth() === month - 1 &&
+                date.getUTCDate() === day &&
+                date <= today
+            );
+        }, "Enter a valid date of birth that is not in the future"),
 
     gender: z
         .string()
         .trim()
         .min(1, "Gender is required"),
 
-    primaryPhone: z
-        .string()
-        .regex(
-            /^[6-9]\d{9}$/,
-            "Invalid primary phone number"
-        ),
+    primaryPhone: z.string()
+        .regex(/^[6-9]\d{9}$/, "Enter a valid 10-digit Indian mobile number"),
 
-    secondaryPhone: z
-        .string()
-        .optional(),
+    secondaryPhone: z.union([
+        z.literal(""),
+        z.string().regex(
+            /^[6-9]\d{9}$/,
+            "Enter a valid 10-digit Indian mobile number"
+        ),
+    ]).optional(),
 
     address: z.object({
         street: z.string().trim().min(1),
         city: z.string().trim().min(1),
         state: z.string().trim().min(1),
-        zipCode: z
-            .string()
-            .regex(
-                /^\d{6}$/,
-                "Invalid PIN code"
-            ),
+        zipCode: z.string()
+            .regex(/^\d{6}$/, "Enter a valid 6-digit PIN code"),
     }),
 
     confirmationAccepted: z

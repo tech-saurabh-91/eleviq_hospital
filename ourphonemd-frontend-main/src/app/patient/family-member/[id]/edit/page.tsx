@@ -25,6 +25,10 @@ import { Label } from "@/components/ui/label";
 
 import { PATIENT_FAMILY_API } from "@/helper/api";
 import api from "@/helper/axios";
+import {
+  formatFamilyDateInput,
+  isValidPastFamilyDate,
+} from "@/lib/family-member";
 
 const relationshipOptions = [
   "father",
@@ -47,31 +51,6 @@ const formatRelationship = (value: string) => {
   return value
     .replace(/-/g, " ")
     .replace(/\b\w/g, (char) => char.toUpperCase());
-};
-
-const convertBackendDateToInput = (date: string) => {
-  if (!date) return "";
-
-  const parts = date.split("/");
-
-  if (parts.length === 3) {
-    const [month, day, year] = parts;
-
-    return `${year}-${month.padStart(2, "0")}-${day.padStart(
-      2,
-      "0"
-    )}`;
-  }
-
-  return date;
-};
-
-const convertInputDateToBackend = (date: string) => {
-  if (!date) return "";
-
-  const [year, month, day] = date.split("-");
-
-  return `${month}/${day}/${year}`;
 };
 
 export default function EditFamilyMemberPage() {
@@ -123,9 +102,7 @@ export default function EditFamilyMemberPage() {
           middleName: data.middleName || "",
           lastName: data.lastName || "",
           relationship: data.relationship || "",
-          dateOfBirth: convertBackendDateToInput(
-            data.dateOfBirth || ""
-          ),
+          dateOfBirth: data.dateOfBirth || "",
           gender: data.gender || "",
           email: data.email || "",
           phone: data.phone || "",
@@ -160,7 +137,7 @@ export default function EditFamilyMemberPage() {
   ) => {
     setFormData((current) => ({
       ...current,
-      [field]: value,
+      [field]: field === "dateOfBirth" ? formatFamilyDateInput(value) : value,
     }));
   };
 
@@ -218,11 +195,8 @@ export default function EditFamilyMemberPage() {
       return "Date of birth is required.";
     }
 
-    const selectedDate = new Date(formData.dateOfBirth);
-    const today = new Date();
-
-    if (selectedDate > today) {
-      return "Date of birth cannot be in the future.";
+    if (!isValidPastFamilyDate(formData.dateOfBirth)) {
+      return "Enter a valid past date in DD/MM/YYYY format.";
     }
 
     if (!formData.gender) {
@@ -243,8 +217,8 @@ export default function EditFamilyMemberPage() {
       return "Phone number is required.";
     }
 
-    if (!/^\+?[0-9]{10,15}$/.test(phone)) {
-      return "Phone number must contain 10 to 15 digits.";
+    if (!/^[6-9][0-9]{9}$/.test(phone)) {
+      return "Enter a valid 10-digit mobile number.";
     }
 
     if (!street) {
@@ -259,24 +233,32 @@ export default function EditFamilyMemberPage() {
       return "City is required.";
     }
 
-    if (city.length > 100) {
-      return "City must be 100 characters or less.";
+    if (city.length < 2) {
+      return "City must contain at least 2 characters.";
+    }
+
+    if (!/^[A-Za-zÀ-ÿ][A-Za-zÀ-ÿ .'-]*$/.test(city)) {
+      return "City contains invalid characters.";
     }
 
     if (!state) {
       return "State is required.";
     }
 
-    if (state.length > 100) {
-      return "State must be 100 characters or less.";
+    if (state.length < 2) {
+      return "State must contain at least 2 characters.";
+    }
+
+    if (!/^[A-Za-zÀ-ÿ][A-Za-zÀ-ÿ .'-]*$/.test(state)) {
+      return "State contains invalid characters.";
     }
 
     if (!zipCode) {
       return "PIN code is required.";
     }
 
-    if (!/^[0-9]{6}$/.test(zipCode)) {
-      return "PIN code must contain 6 digits.";
+    if (!/^[1-9][0-9]{5}$/.test(zipCode)) {
+      return "PIN code must contain 6 digits and cannot start with 0.";
     }
 
     return "";
@@ -302,9 +284,7 @@ export default function EditFamilyMemberPage() {
         middleName: formData.middleName.trim(),
         lastName: formData.lastName.trim(),
         relationship: formData.relationship,
-        dateOfBirth: convertInputDateToBackend(
-          formData.dateOfBirth
-        ),
+        dateOfBirth: formData.dateOfBirth,
         gender: formData.gender,
         email: formData.email.trim(),
         phone: formData.phone.trim(),
@@ -523,7 +503,7 @@ export default function EditFamilyMemberPage() {
 
                   <Input
                     className="mt-2"
-                    type="date"
+                    type="text"
                     value={formData.dateOfBirth}
                     onChange={(e) =>
                       handleChange(
@@ -531,6 +511,9 @@ export default function EditFamilyMemberPage() {
                         e.target.value
                       )
                     }
+                    placeholder="DD/MM/YYYY"
+                    inputMode="numeric"
+                    maxLength={10}
                   />
                 </div>
 
@@ -560,9 +543,6 @@ export default function EditFamilyMemberPage() {
                         Other
                       </SelectItem>
 
-                      <SelectItem value="prefer-not-to-say">
-                        Prefer not to say
-                      </SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -605,6 +585,8 @@ export default function EditFamilyMemberPage() {
                         e.target.value
                       )
                     }
+                    inputMode="numeric"
+                    maxLength={10}
                   />
                 </div>
               </div>
@@ -629,6 +611,7 @@ export default function EditFamilyMemberPage() {
                         e.target.value
                       )
                     }
+                    maxLength={200}
                   />
                 </div>
 
@@ -644,6 +627,7 @@ export default function EditFamilyMemberPage() {
                         e.target.value
                       )
                     }
+                    maxLength={100}
                   />
                 </div>
 
@@ -659,6 +643,7 @@ export default function EditFamilyMemberPage() {
                         e.target.value
                       )
                     }
+                    maxLength={100}
                   />
                 </div>
 
@@ -674,6 +659,8 @@ export default function EditFamilyMemberPage() {
                         e.target.value
                       )
                     }
+                    inputMode="numeric"
+                    maxLength={6}
                   />
                 </div>
               </div>

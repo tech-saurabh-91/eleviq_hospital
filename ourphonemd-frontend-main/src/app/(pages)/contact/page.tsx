@@ -27,8 +27,8 @@ import Image from "next/image";
 export default function ContactPage() {
   const fadeIn = {
     hidden: { opacity: 0, y: 20 },
-    visible: { 
-      opacity: 1, 
+    visible: {
+      opacity: 1,
       y: 0,
       transition: { duration: 0.6 }
     }
@@ -58,32 +58,32 @@ export default function ContactPage() {
       icon: Phone,
       title: "Phone",
       description: "Talk to our support team",
-      content: "(270) 769-0110",
-      href: "tel:(270)769-0110",
+      content: "9654663440",
+      href: "tel:9654663440",
       detail: "Available Mon-Sun, 8:00 AM - 8:00 PM"
     },
     {
       icon: Mail,
       title: "Email",
       description: "Send us a message",
-      content: "Inquiry.OPMD@yahoo.com",
-      href: "mailto:Inquiry.OPMD@yahoo.com",
+      content: "info@eleviqtechnologies.com",
+      href: "mailto:info@eleviqtechnologies.com",
       detail: "We'll respond as quickly as possible"
     },
     {
       icon: MapPin,
       title: "Office Location",
       description: "Visit our office",
-      content: "103 Financial Dr, Elizabethtown, KY 42701",
-      href: "https://goo.gl/maps/7xFgQL3H6NQoBFdJ9",
-      detail: "United States"
+      content: "Greater Noida, Uttar Pradesh, India",
+      href: "https://www.google.com/maps/place/Greater+Noida,+Uttar+Pradesh/@28.4983598,77.5159955,11z",
+      detail: "India"
     }
   ];
 
   const faqs = [
     {
       question: "How quickly will I receive a response?",
-      answer: "We aim to respond to all inquiries within 24 hours during business days. For urgent matters, please call us directly at (270) 769-0110."
+      answer: "We aim to respond to all inquiries within 24 hours during business days. For urgent matters, please call us directly at 9654663440"
     },
     {
       question: "Can I book an appointment through the contact form?",
@@ -91,11 +91,11 @@ export default function ContactPage() {
     },
     {
       question: "How do I get technical support for the telemedicine platform?",
-      answer: "For technical support, please call our support line at (270) 769-0110 or email us with \"Technical Support\" in the subject line. Our team is available during regular business hours to assist you."
+      answer: "For technical support, please call our support line at 9654663440 or email us with \"Technical Support\" in the subject line. Our team is available during regular business hours to assist you."
     },
     {
       question: "Do you offer in-person consultations?",
-      answer: "While we specialize in telemedicine, Dr. Saifullah does maintain physical practices in Elizabethtown and Bardstown. Please contact us for more information about in-person appointments at these locations."
+      answer: "While we specialize in telemedicine, Upasana Yadhav does maintain physical practices in Noida. Please contact us for more information about in-person appointments at these locations."
     }
   ];
 
@@ -107,18 +107,18 @@ export default function ContactPage() {
         <div className="absolute -top-10 right-10 w-64 h-64 bg-customTeal rounded-full opacity-10 blur-3xl"></div>
         <div className="absolute bottom-10 left-10 w-64 h-64 bg-blue-400 rounded-full opacity-10 blur-3xl"></div>
 
-        <motion.div 
+        <motion.div
           className="container max-w-7xl mx-auto px-4"
           initial="hidden"
           animate="visible"
           variants={fadeIn}
         >
           <div className="grid grid-cols-1 md:px-4 lg:grid-cols-2 gap-12 items-center">
-            <motion.div 
+            <motion.div
               className="space-y-6"
               variants={fadeIn}
             >
-              <motion.span 
+              <motion.span
                 className="inline-block px-4 py-1.5 bg-customTeal/10 text-customTeal rounded-full text-sm font-medium"
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
@@ -126,7 +126,7 @@ export default function ContactPage() {
               >
                 Get In Touch
               </motion.span>
-              <motion.h1 
+              <motion.h1
                 className="text-4xl md:text-5xl font-bold text-slate-900 tracking-tight"
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -134,7 +134,7 @@ export default function ContactPage() {
               >
                 Contact <span className="text-customTeal">Us</span>
               </motion.h1>
-              <motion.p 
+              <motion.p
                 className="text-xl text-slate-600 leading-relaxed"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
@@ -148,23 +148,23 @@ export default function ContactPage() {
                 transition={{ delay: 0.6, duration: 0.6 }}
                 className="flex gap-4 pt-4"
               >
-                <Button 
-                  asChild 
+                <Button
+                  asChild
                   className="bg-customTeal hover:bg-customTeal/90 transition-all duration-300"
                 >
-                  <a href="tel:(270)769-0110">Call Us Now</a>
+                  <a href="9654663440">Call Us Now</a>
                 </Button>
-                <Button 
-                  asChild 
-                  variant="outline" 
+                <Button
+                  asChild
+                  variant="outline"
                   className="border-customTeal text-customTeal hover:bg-customTeal/5"
                 >
                   <Link href="#contact-form">Send Message</Link>
                 </Button>
               </motion.div>
             </motion.div>
-            
-            <motion.div 
+
+            <motion.div
               className="relative h-full w-full m-auto md:h-[400px] md:w-[400px] md:mr-auto md:ml-16 rounded-2xl overflow-hidden shadow-2xl"
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
@@ -186,9 +186,9 @@ export default function ContactPage() {
       {/* Contact Info Section */}
       <section className="py-20 relative overflow-hidden">
         <div className="absolute top-40 left-0 w-72 h-72 bg-customTeal/10 rounded-full opacity-30 blur-3xl -translate-x-1/2"></div>
-        
+
         <div className="container max-w-7xl mx-auto px-4">
-          <motion.div 
+          <motion.div
             className="grid grid-cols-1 md:grid-cols-3 gap-8"
             variants={staggerChildren}
             initial="hidden"
@@ -229,7 +229,7 @@ export default function ContactPage() {
       {/* Contact Form & Map Section */}
       <section id="contact-form" className="py-20 bg-gradient-to-b from-slate-50 to-white relative overflow-hidden">
         <div className="absolute bottom-0 right-0 w-96 h-96 bg-customTeal/20 rounded-full opacity-20 blur-3xl translate-x-1/3 translate-y-1/3"></div>
-        
+
         <div className="container max-w-7xl mx-auto px-4 md:px-6 relative z-10">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
             <motion.div
@@ -268,13 +268,13 @@ export default function ContactPage() {
                 Our <span className="text-customTeal">Location</span>
               </h2>
               <p className="text-lg text-slate-600 mb-8">
-                While our telemedicine services are available online, you can also visit our physical office in Elizabethtown, Kentucky.
+                While our telemedicine services are available online, you can also visit us in Greater Noida, Uttar Pradesh.
               </p>
 
               <div className="rounded-2xl overflow-hidden shadow-xl">
                 <iframe
-                  title="OurPhoneMD Office Location Map"
-                  src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3160.5535614185383!2d-85.85909382397788!3d37.6973044155785!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x88680d954c3a1921%3A0xed6a2cda88c1f22!2s103%20Financial%20Dr%2C%20Elizabethtown%2C%20KY%2042701%2C%20USA!5e0!3m2!1sen!2sin!4v1714569847801!5m2!1sen!2sin"
+                  title="Eleviq Hospital Location - Greater Noida"
+                  src="https://maps.google.com/maps?q=Greater%20Noida%2C%20Uttar%20Pradesh&t=&z=12&ie=UTF8&iwloc=&output=embed"
                   width="100%"
                   height="450"
                   style={{ border: 0 }}
@@ -297,18 +297,18 @@ export default function ContactPage() {
 
                 <div className="flex gap-4 mt-6">
                   <a
-                    href="https://www.youtube.com/@adminourphonemd6366"
+                    href="https://www.youtube.com/@admineleviqhospital6366"
                     target="_blank"
-                    className="h-10 w-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-600 hover:bg-customTeal/10 hover:text-customTeal transition-colors" 
+                    className="h-10 w-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-600 hover:bg-customTeal/10 hover:text-customTeal transition-colors"
                     rel="noreferrer"
                   >
                     <Youtube className="h-5 w-5" />
                     <span className="sr-only">YouTube</span>
                   </a>
                   <a
-                    href="https://www.facebook.com/p/Ourphonemdcom-100064240503186/"
+                    href="https://www.facebook.com/p/eleviqhospitalcom-100064240503186/"
                     target="_blank"
-                    className="h-10 w-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-600 hover:bg-customTeal/10 hover:text-customTeal transition-colors" 
+                    className="h-10 w-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-600 hover:bg-customTeal/10 hover:text-customTeal transition-colors"
                     rel="noreferrer"
                   >
                     <Facebook className="h-5 w-5" />
@@ -324,16 +324,16 @@ export default function ContactPage() {
       {/* FAQ Section */}
       <section className="py-20 relative overflow-hidden">
         <div className="absolute top-40 right-0 w-72 h-72 bg-customTeal/10 rounded-full opacity-30 blur-3xl translate-x-1/2"></div>
-        
+
         <div className="container max-w-7xl mx-auto px-4">
-          <motion.div 
+          <motion.div
             className="text-center max-w-3xl mx-auto mb-16"
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.6 }}
           >
-            <motion.div 
+            <motion.div
               className="inline-flex items-center justify-center h-10 px-4 py-2 bg-customTeal/10 text-customTeal rounded-full mb-5 font-medium"
               initial={{ opacity: 0, scale: 0.9 }}
               whileInView={{ opacity: 1, scale: 1 }}
@@ -343,7 +343,7 @@ export default function ContactPage() {
               <Sparkles className="h-4 w-4 mr-2" />
               Common Questions
             </motion.div>
-            
+
             <h2 className="text-3xl md:text-4xl font-bold text-slate-900 mb-4">
               Frequently Asked <span className="text-customTeal">Questions</span>
             </h2>
@@ -352,7 +352,7 @@ export default function ContactPage() {
             </p>
           </motion.div>
 
-          <motion.div 
+          <motion.div
             className="grid grid-cols-1 md:grid-cols-2 px-4 gap-8"
             variants={staggerChildren}
             initial="hidden"
@@ -379,7 +379,7 @@ export default function ContactPage() {
       </section>
 
       {/* CTA Section */}
-      <motion.section 
+      <motion.section
         className="py-12 md:py-16 bg-gradient-to-br from-customTeal to-teal-800 text-white relative overflow-hidden mb-10 -mt-4"
         initial={{ opacity: 0 }}
         whileInView={{ opacity: 1 }}
@@ -389,16 +389,16 @@ export default function ContactPage() {
         <div className="absolute top-0 left-0 w-full h-full bg-[url('/grid-pattern.png')] opacity-10"></div>
         <div className="absolute -top-40 -right-40 w-80 h-80 bg-blue-400 rounded-full opacity-20 blur-3xl"></div>
         <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-blue-400 rounded-full opacity-20 blur-3xl"></div>
-        
+
         <div className="container max-w-5xl mx-auto px-4 relative z-10">
-          <motion.div 
+          <motion.div
             className="text-center max-w-3xl mx-auto space-y-6"
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.6 }}
           >
-            <motion.h2 
+            <motion.h2
               className="text-3xl md:text-4xl lg:text-5xl font-bold"
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
@@ -407,7 +407,7 @@ export default function ContactPage() {
             >
               Ready to experience our care?
             </motion.h2>
-            <motion.p 
+            <motion.p
               className="text-xl opacity-90"
               initial={{ opacity: 0 }}
               whileInView={{ opacity: 1 }}
@@ -416,24 +416,24 @@ export default function ContactPage() {
             >
               Connect with our board-certified providers from the comfort of your home.
             </motion.p>
-            <motion.div 
+            <motion.div
               className="pt-6 flex flex-wrap justify-center gap-4"
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ delay: 0.4, duration: 0.6 }}
             >
-              <Button 
-                asChild 
-                size="lg" 
+              <Button
+                asChild
+                size="lg"
                 className="bg-white text-customTeal hover:bg-slate-50 transition-all duration-300 shadow-lg hover:shadow-xl"
               >
                 <Link href="/book">Book Appointment</Link>
               </Button>
-              <Button 
-                asChild 
-                size="lg" 
-                variant="outline" 
+              <Button
+                asChild
+                size="lg"
+                variant="outline"
                 className="bg-customTeal/20 hover:bg-customTeal/30 transition-all duration-300 border-white/70 hover:border-white text-white shadow-lg hover:shadow-xl"
               >
                 <Link href="/signup">Create Account</Link>

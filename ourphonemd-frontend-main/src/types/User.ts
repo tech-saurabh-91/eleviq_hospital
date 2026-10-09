@@ -27,7 +27,9 @@ export interface IUser {
 export interface IUserContextType {
   user: IUser | null;
   setUser: (user: IUser | null) => void;
-  logout: () => void;
+  isLoadingUser: boolean;
+  refreshUser: () => Promise<IUser | null>;
+  logout: () => Promise<void>;
 }
 
 export interface RegisterUser {

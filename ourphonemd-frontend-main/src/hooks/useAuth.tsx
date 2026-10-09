@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import axios from "axios";
@@ -18,11 +18,11 @@ import { SignInFormValues, SignupFormValues } from "@/types/auth.type";
 import {
   PATIENT_AUTH_API,
   PATIENT_REGISTRATION_API,
-  PATIENT_INSURANCE_API,
 } from "@/helper/api";
 
 import { LoginResponse } from "@/types/User";
 import { ApiError } from "@/types/error";
+import { useUser } from "@/context/userContext";
 
 const ORGANIZATION_ID = "cmayaxw0g0001u3dsftfodhbh";
 
@@ -120,6 +120,7 @@ export const useAuth = () => {
   const [showPassword, setShowPassword] = useState(false);
 
   const router = useRouter();
+  const { refreshUser } = useUser();
 
   /*
    * Registration session ID returned by backend.
@@ -144,6 +145,8 @@ export const useAuth = () => {
    * Sign Up
    */
   const [currentStep, setCurrentStep] = useState(1);
+  const [isSignupStateRestored, setIsSignupStateRestored] = useState(false);
+
   const totalSteps = 6;
 
   const [showInsuranceModal, setShowInsuranceModal] = useState(false);
@@ -195,6 +198,85 @@ export const useAuth = () => {
     },
   });
 
+
+  // Restore saved registration progress after refresh.
+  useEffect(() => {
+    try {
+      const saved = sessionStorage.getItem("signupProgress");
+
+      if (saved) {
+        const parsed = JSON.parse(saved);
+
+        if (
+          parsed.currentStep >= 1 &&
+          parsed.currentStep <= totalSteps &&
+          parsed.formValues
+        ) {
+          signupForm.reset({
+            ...signupForm.getValues(),
+            ...parsed.formValues,
+            password: "",
+            emailVerificationCode: "",
+            phoneVerificationCode: "",
+            frontCardImage: undefined,
+            backCardImage: undefined,
+          });
+
+          setCurrentStep(parsed.currentStep);
+          setRegistrationId(parsed.registrationId ?? null);
+        }
+      }
+    } catch (error) {
+      console.error("Failed to restore signup progress:", error);
+      sessionStorage.removeItem("signupProgress");
+    } finally {
+      setIsSignupStateRestored(true);
+    }
+  }, [signupForm, totalSteps]);
+
+  // Save non-sensitive values whenever the form or step changes.
+  useEffect(() => {
+    if (!isSignupStateRestored) return;
+
+    const saveProgress = (values: SignupFormValues) => {
+      const safeValues = Object.fromEntries(
+        Object.entries(values).filter(
+          ([key]) =>
+            ![
+              "password",
+              "emailVerificationCode",
+              "phoneVerificationCode",
+              "frontCardImage",
+              "backCardImage",
+            ].includes(key)
+        )
+      );
+
+      sessionStorage.setItem(
+        "signupProgress",
+        JSON.stringify({
+          currentStep,
+          registrationId,
+          formValues: safeValues,
+        })
+      );
+    };
+
+    saveProgress(signupForm.getValues());
+
+    const subscription = signupForm.watch((values) => {
+      saveProgress(values as SignupFormValues);
+    });
+
+    return () => subscription.unsubscribe();
+  }, [
+    signupForm,
+    currentStep,
+    registrationId,
+    isSignupStateRestored,
+  ]);
+
+
   /*
    * =========================
    * LOGIN
@@ -243,6 +325,14 @@ export const useAuth = () => {
 
       if (!dashboardRoute) {
         throw new Error("No dashboard configured for your role");
+      }
+
+      if (dashboardRoute === "/patient") {
+        const patient = await refreshUser();
+
+        if (!patient) {
+          throw new Error("Unable to verify your patient session. Please sign in again.");
+        }
       }
 
       router.push(dashboardRoute);
@@ -663,304 +753,304 @@ export const useAuth = () => {
     return isValid;
   };
 
-    /*
-     * =========================
-     * NEXT STEP
-     * =========================
-     */
-
-    const handleNext = async () => {
-      try {
-        const isValid = await validateCurrentStep();
-
-        if (!isValid) {
-          return;
-        }
-
-        /*
-         * STEP 1
-         *
-         * Create backend registration session.
-         */
-        if (currentStep === 1) {
-          setIsLoading(true);
-
-          const id = await createRegistrationSession();
-
-          setRegistrationId(id);
-
-          setCurrentStep(2);
-
-          return;
-        }
-
-        /*
-   * STEP 2
-   *
-   * Complete prerequisites.
+  /*
+   * =========================
+   * NEXT STEP
+   * =========================
    */
-        if (currentStep === 2) {
-          if (!registrationId) {
-            throw new Error(
-              "Registration session not found"
-            );
-          }
 
-          setIsLoading(true);
+  const handleNext = async () => {
+    try {
+      const isValid = await validateCurrentStep();
 
-          await completePrerequisites(registrationId);
-
-          setCurrentStep(3);
-
-          return;
-        }
-
-        /*
-   * STEP 3
-   *
-   * Complete age verification.
-   */
-        if (currentStep === 3) {
-          if (!registrationId) {
-            throw new Error(
-              "Registration session not found"
-            );
-          }
-
-          setIsLoading(true);
-
-          await completeAgeVerification(registrationId);
-
-          setCurrentStep(4);
-
-          return;
-        }
-
-        /*
-         * STEP 4
-         *
-         * Create account.
-         */
-        if (currentStep === 4) {
-          if (!registrationId) {
-            throw new Error(
-              "Registration session not found"
-            );
-          }
-
-          setIsLoading(true);
-
-          await createAccount(registrationId);
-
-          setCurrentStep(5);
-
-          return;
-        }
-
-        /*
-         * STEP 5
-         *
-         * Verify OTP.
-         */
-        if (currentStep === 5) {
-          if (!registrationId) {
-            throw new Error(
-              "Registration session not found"
-            );
-          }
-
-          setIsLoading(true);
-
-          await verifyOtp(registrationId);
-
-          toast.success(
-            "Registration completed successfully!"
-          );
-
-          setShowInsuranceModal(true);
-
-          return;
-        }
-
-        /*
-         * STEP 6
-         *
-         * Insurance is currently UI-only.
-         *
-         * We will integrate this later.
-         */
-        if (currentStep === 6) {
-          toast.success(
-            "Registration completed successfully!"
-          );
-
-          router.push("/patient");
-        }
-      } catch (error: any) {
-        console.error(
-          "Registration step error:",
-          error
-        );
-
-        const apiError = error?.response?.data as ApiError;
-
-        toast.error(
-          apiError?.message ||
-          error?.message ||
-          "Registration failed"
-        );
-      } finally {
-        setIsLoading(false);
+      if (!isValid) {
+        return;
       }
-    };
 
-    /*
-     * =========================
-     * INSURANCE CHOICE
-     * =========================
-     *
-     * Kept temporarily so existing
-     * SignupForm doesn't break.
-     */
+      /*
+       * STEP 1
+       *
+       * Create backend registration session.
+       */
+      if (currentStep === 1) {
+        setIsLoading(true);
 
-    const handleInsuranceChoice = async (
-      hasInsurance: boolean
-    ) => {
-      setShowInsuranceModal(false);
+        const id = await createRegistrationSession();
 
-      signupForm.setValue(
-        "hasInsuranceCard",
-        hasInsurance
-      );
+        setRegistrationId(id);
 
-      if (hasInsurance) {
-        setCurrentStep(6);
-      } else {
-        /*
-         * Registration is now already completed
-         * at OTP verification.
-         */
+        setCurrentStep(2);
+
+        return;
+      }
+
+      /*
+ * STEP 2
+ *
+ * Complete prerequisites.
+ */
+      if (currentStep === 2) {
+        if (!registrationId) {
+          throw new Error(
+            "Registration session not found"
+          );
+        }
+
+        setIsLoading(true);
+
+        await completePrerequisites(registrationId);
+
+        setCurrentStep(3);
+
+        return;
+      }
+
+      /*
+ * STEP 3
+ *
+ * Complete age verification.
+ */
+      if (currentStep === 3) {
+        if (!registrationId) {
+          throw new Error(
+            "Registration session not found"
+          );
+        }
+
+        setIsLoading(true);
+
+        await completeAgeVerification(registrationId);
+
+        setCurrentStep(4);
+
+        return;
+      }
+
+      /*
+       * STEP 4
+       *
+       * Create account.
+       */
+      if (currentStep === 4) {
+        if (!registrationId) {
+          throw new Error(
+            "Registration session not found"
+          );
+        }
+
+        setIsLoading(true);
+
+        await createAccount(registrationId);
+
+        setCurrentStep(5);
+
+        return;
+      }
+
+      /*
+       * STEP 5
+       *
+       * Verify OTP.
+       */
+      if (currentStep === 5) {
+        if (!registrationId) {
+          throw new Error(
+            "Registration session not found"
+          );
+        }
+
+        setIsLoading(true);
+
+        await verifyOtp(registrationId);
+
+        toast.success("Registration completed successfully!");
+
+        setShowInsuranceModal(true);
+
+        return;
+      }
+
+      /*
+       * STEP 6
+       *
+       * Insurance is currently UI-only.
+       *
+       * We will integrate this later.
+       */
+      if (currentStep === 6) {
+        toast.success(
+          "Registration completed successfully!"
+        );
+
         router.push("/patient");
       }
-    };
+    } catch (error: any) {
+      console.error(
+        "Registration step error:",
+        error
+      );
 
-    /*
-     * =========================
-     * SIGN UP SUBMIT
-     * =========================
-     */
+      const apiError = error?.response?.data as ApiError;
 
-    const onSignUp = async (
-    ) => {
-      try {
-        if (currentStep < totalSteps) {
-          await handleNext();
-        } else {
-          await handleNext();
-        }
-      } catch (error) {
-        console.error(
-          "Signup error:",
-          error
-        );
-
-        toast.error(
-          error instanceof Error
-            ? error.message
-            : "Signup failed"
-        );
-      }
-    };
-
-    /*
-     * =========================
-     * PREVIOUS
-     * =========================
-     */
-
-    const goToPreviousStep = () => {
-      if (currentStep > 1) {
-        setCurrentStep(currentStep - 1);
-      }
-    };
-
-    /*
-     * =========================
-     * STEP RENDERING
-     * =========================
-     */
-
-    const renderStep = () => {
-      switch (currentStep) {
-        case 1:
-          return <TermsAndConditions />;
-
-        case 2:
-          return <Step2Prerequisites />;
-
-        case 3:
-          return <Step3AgeVerification />;
-
-        case 4:
-          return <Step4ProfileCreation />;
-
-        case 5:
-          return (
-            <Step5Verification
-              onSendVerificationCode={sendVerificationCode}
-              onResendVerificationCode={resendOtp}
-              registrationId={registrationId}
-            />
-          );
-
-        case 6:
-          return (
-            <Step6Insurance registrationId={registrationId} />
-          );
-
-        default:
-          return <TermsAndConditions />;
-      }
-    };
-
-    const stepTitles = [
-      "Terms & Conditions",
-      "Prerequisites",
-      "Age Verification",
-      "Account Creation",
-      "Verification",
-      "Insurance",
-    ];
-
-    return {
-      isLoading,
-      router,
-
-      signInForm,
-      showPassword,
-      setShowPassword,
-      handleLogin,
-      onSignIn,
-
-      signupForm,
-      currentStep,
-      setCurrentStep,
-      totalSteps,
-
-      registrationId,
-
-      showInsuranceModal,
-      setShowInsuranceModal,
-
-      handleNext,
-      onSignUp,
-      goToPreviousStep,
-
-      stepTitles,
-      handleInsuranceChoice,
-      validateCurrentStep,
-      renderStep,
-
-      resendOtp,
-    };
+      toast.error(
+        apiError?.message ||
+        error?.message ||
+        "Registration failed"
+      );
+    } finally {
+      setIsLoading(false);
+    }
   };
+
+  /*
+   * =========================
+   * INSURANCE CHOICE
+   * =========================
+   *
+   * Kept temporarily so existing
+   * SignupForm doesn't break.
+   */
+
+  const handleInsuranceChoice = async (
+    hasInsurance: boolean
+  ) => {
+    setShowInsuranceModal(false);
+    sessionStorage.removeItem("signupProgress");
+
+    signupForm.setValue(
+      "hasInsuranceCard",
+      hasInsurance
+    );
+
+    if (hasInsurance) {
+      setCurrentStep(6);
+    } else {
+      /*
+       * Registration is now already completed
+       * at OTP verification.
+       */
+      router.push("/patient");
+    }
+  };
+
+  /*
+   * =========================
+   * SIGN UP SUBMIT
+   * =========================
+   */
+
+  const onSignUp = async (
+  ) => {
+    try {
+      if (currentStep < totalSteps) {
+        await handleNext();
+      } else {
+        await handleNext();
+      }
+    } catch (error) {
+      console.error(
+        "Signup error:",
+        error
+      );
+
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "Signup failed"
+      );
+    }
+  };
+
+  /*
+   * =========================
+   * PREVIOUS
+   * =========================
+   */
+
+  const goToPreviousStep = () => {
+    if (currentStep > 1) {
+      setCurrentStep((step) => step - 1);
+    }
+  };
+
+  /*
+   * =========================
+   * STEP RENDERING
+   * =========================
+   */
+
+  const renderStep = () => {
+    switch (currentStep) {
+      case 1:
+        return <TermsAndConditions />;
+
+      case 2:
+        return <Step2Prerequisites />;
+
+      case 3:
+        return <Step3AgeVerification />;
+
+      case 4:
+        return <Step4ProfileCreation />;
+
+      case 5:
+        return (
+          <Step5Verification
+            onSendVerificationCode={sendVerificationCode}
+            onResendVerificationCode={resendOtp}
+            registrationId={registrationId}
+            onContinue={handleNext}
+          />
+        );
+
+      case 6:
+        return (
+          <Step6Insurance registrationId={registrationId} />
+        );
+
+      default:
+        return <TermsAndConditions />;
+    }
+  };
+
+  const stepTitles = [
+    "Terms & Conditions",
+    "Prerequisites",
+    "Age Verification",
+    "Account Creation",
+    "Verification",
+    "Insurance",
+  ];
+
+  return {
+    isLoading,
+    router,
+
+    signInForm,
+    showPassword,
+    setShowPassword,
+    handleLogin,
+    onSignIn,
+
+    signupForm,
+    currentStep,
+    setCurrentStep,
+    totalSteps,
+
+    registrationId,
+
+    showInsuranceModal,
+    setShowInsuranceModal,
+
+    handleNext,
+    onSignUp,
+    goToPreviousStep,
+
+    stepTitles,
+    handleInsuranceChoice,
+    validateCurrentStep,
+    renderStep,
+
+    resendOtp,
+  };
+};
