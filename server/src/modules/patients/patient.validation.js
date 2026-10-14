@@ -64,20 +64,11 @@ const registerPatientSchema = z.object({
             "Password must contain a special character"
         ),
 
-    firstName: z
-        .string()
-        .trim()
-        .min(1, "First name is required"),
+    firstName: z.string().trim().min(1, "First name is required").max(50, "First name must be 50 characters or less").regex(/^[A-Za-zÀ-ÿ\s'-]+$/, "First name contains invalid characters"),
 
-    middleName: z
-        .string()
-        .trim()
-        .optional(),
+    middleName: z.string().trim().max(50, "Middle name must be 50 characters or less").regex(/^[A-Za-zÀ-ÿ\s'-]*$/, "Middle name contains invalid characters").optional().or(z.literal("")),
 
-    lastName: z
-        .string()
-        .trim()
-        .min(1, "Last name is required"),
+    lastName: z.string().trim().min(1, "Last name is required").max(50, "Last name must be 50 characters or less").regex(/^[A-Za-zÀ-ÿ\s'-]+$/, "Last name contains invalid characters"),
 
     dateOfBirth: z
         .string()
@@ -91,21 +82,15 @@ const registerPatientSchema = z.object({
         .trim()
         .min(1, "Gender is required"),
 
-    primaryPhone: z
-        .string()
-        .trim()
-        .min(1, "Primary phone number is required"),
+    primaryPhone: z.string().trim().regex(/^[6-9]\d{9}$/, "Primary phone must be a valid 10-digit Indian mobile number"),
 
-    secondaryPhone: z
-        .string()
-        .trim()
-        .optional(),
+    secondaryPhone: z.string().trim().regex(/^[6-9]\d{9}$/, "Secondary phone must be a valid 10-digit Indian mobile number").optional().or(z.literal("")),
 
     address: z.object({
         street: z.string().trim().optional(),
         city: z.string().trim().optional(),
         state: z.string().trim().optional(),
-        zipCode: z.string().trim().optional(),
+        zipCode: z.string().trim().regex(/^[1-9]\d{5}$/, "PIN code must contain 6 digits and cannot start with 0").optional().or(z.literal("")),
     }),
 
     confirmationAccepted: z
@@ -197,14 +182,7 @@ const accountInformationSchema = z.object({
             "Password must contain a special character"
         ),
 
-    firstName: z.string()
-        .trim()
-        .min(1, "First name is required")
-        .max(80, "Name must not exceed 80 characters")
-        .regex(
-            /^[\p{L}]+(?:[ '-][\p{L}]+)*$/u,
-            "Enter a valid first name"
-        ),
+    firstName: z.string().trim().min(1, "First name is required").max(50, "First name must not exceed 50 characters").regex(/^[A-Za-zÀ-ÿ\s'-]+$/, "Enter a valid first name"),
 
     middleName: z.string()
         .trim()
@@ -216,14 +194,7 @@ const accountInformationSchema = z.object({
         )
         .optional(),
 
-    lastName: z.string()
-        .trim()
-        .min(1, "Last name is required")
-        .max(80, "Name must not exceed 80 characters")
-        .regex(
-            /^[\p{L}]+(?:[ '-][\p{L}]+)*$/u,
-            "Enter a valid last name"
-        ),
+    lastName: z.string().trim().min(1, "Last name is required").max(50, "Last name must not exceed 50 characters").regex(/^[A-Za-zÀ-ÿ\s'-]+$/, "Enter a valid last name"),
 
     dateOfBirth: z.string()
         .regex(/^\d{4}-\d{2}-\d{2}$/, "Use YYYY-MM-DD format")
@@ -262,8 +233,7 @@ const accountInformationSchema = z.object({
         street: z.string().trim().min(1),
         city: z.string().trim().min(1),
         state: z.string().trim().min(1),
-        zipCode: z.string()
-            .regex(/^\d{6}$/, "Enter a valid 6-digit PIN code"),
+        zipCode: z.string().trim().regex(/^[1-9]\d{5}$/, "Enter a valid 6-digit PIN code not starting with 0"),
     }),
 
     confirmationAccepted: z

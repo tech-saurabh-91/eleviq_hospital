@@ -23,6 +23,25 @@ const createInsurance = async (patientId, insuranceData) => {
         subscriberAddress,
         frontCardImage,
         backCardImage,
+        policyDocument,
+        // Indian HMS Insurance Fields
+        tpa,
+        planName,
+        policyType,
+        policyHolderName,
+        expiryDate,
+        sumInsured,
+        remainingSumInsured,
+        roomRentLimit,
+        copay,
+        deductible,
+        coverageRestrictions,
+        employerName,
+        employeeId,
+        schemeName,
+        beneficiaryId,
+        verificationStatus,
+        verificationRemarks,
     } = insuranceData;
 
     // Verify patient
@@ -36,6 +55,13 @@ const createInsurance = async (patientId, insuranceData) => {
     if (new Date(effectiveDate) > new Date()) {
         throw new Error(
             "Insurance effective date cannot be in the future"
+        );
+    }
+
+    // Validate expiry date if provided
+    if (expiryDate && new Date(expiryDate) < new Date(effectiveDate)) {
+        throw new Error(
+            "Policy expiry date cannot be earlier than effective date"
         );
     }
 
@@ -55,16 +81,13 @@ const createInsurance = async (patientId, insuranceData) => {
         }
     }
 
-    // Determine whether this is commercial insurance
-    const normalizedInsuranceType =
-        insuranceType.toLowerCase();
+    // Check for legacy US commercial insurance where SSN was required
+    const normalizedInsuranceType = (insuranceType || "").toLowerCase();
+    const isLegacyUsCommercial =
+        normalizedInsuranceType === "non-medicaid" ||
+        (normalizedInsuranceType === "commercial" && Boolean(subscriberSsn));
 
-    const isCommercial =
-        normalizedInsuranceType.includes("commercial") ||
-        normalizedInsuranceType.includes("non-medicaid");
-
-    // Commercial insurance requires subscriber information
-    if (isCommercial) {
+    if (isLegacyUsCommercial) {
         if (!subscriberName) {
             throw new Error("Subscriber name is required");
         }
@@ -86,7 +109,7 @@ const createInsurance = async (patientId, insuranceData) => {
         }
     }
 
-    // Only one primary insurance per patient account
+    // Only one primary insurance per patient account/family member
     if (isPrimary) {
         await Insurance.updateMany(
             {
@@ -121,8 +144,8 @@ const createInsurance = async (patientId, insuranceData) => {
         relationship,
         isPrimary,
 
-        subscriberName,
-        subscriberCopay,
+        subscriberName: subscriberName || policyHolderName,
+        subscriberCopay: subscriberCopay || copay,
         subscriberSsn,
 
         subscriberDateOfBirth:
@@ -132,9 +155,31 @@ const createInsurance = async (patientId, insuranceData) => {
 
         subscriberAddress,
 
-        // Store Cloudinary image metadata
+        // Indian HMS Fields
+        tpa,
+        planName,
+        policyType: policyType || "Individual",
+        policyHolderName: policyHolderName || subscriberName,
+        expiryDate: expiryDate ? new Date(expiryDate) : undefined,
+        sumInsured: sumInsured !== undefined ? Number(sumInsured) : undefined,
+        remainingSumInsured: remainingSumInsured !== undefined ? Number(remainingSumInsured) : undefined,
+        roomRentLimit,
+        copay: copay || subscriberCopay,
+        deductible,
+        coverageRestrictions,
+        employerName,
+        employeeId,
+        schemeName,
+        beneficiaryId,
+
+        // Verification metadata
+        verificationStatus: verificationStatus || "Pending",
+        verificationRemarks: verificationRemarks || "",
+
+        // Store Cloudinary image/document metadata
         frontCardImage,
         backCardImage,
+        policyDocument,
     });
 
     await insurance.save();
@@ -165,8 +210,28 @@ const createInsurance = async (patientId, insuranceData) => {
         subscriberAddress:
             insurance.subscriberAddress,
 
+        // Indian HMS Fields
+        tpa: insurance.tpa,
+        planName: insurance.planName,
+        policyType: insurance.policyType,
+        policyHolderName: insurance.policyHolderName,
+        expiryDate: insurance.expiryDate,
+        sumInsured: insurance.sumInsured,
+        remainingSumInsured: insurance.remainingSumInsured,
+        roomRentLimit: insurance.roomRentLimit,
+        copay: insurance.copay,
+        deductible: insurance.deductible,
+        coverageRestrictions: insurance.coverageRestrictions,
+        employerName: insurance.employerName,
+        employeeId: insurance.employeeId,
+        schemeName: insurance.schemeName,
+        beneficiaryId: insurance.beneficiaryId,
+        verificationStatus: insurance.verificationStatus,
+        verificationRemarks: insurance.verificationRemarks,
+
         frontCardImage: insurance.frontCardImage,
         backCardImage: insurance.backCardImage,
+        policyDocument: insurance.policyDocument,
 
         createdAt: insurance.createdAt,
         updatedAt: insurance.updatedAt,
@@ -279,6 +344,23 @@ const updateInsurance = async (
         "subscriberCopay",
         "subscriberSsn",
         "subscriberAddress",
+        // Indian HMS Fields
+        "tpa",
+        "planName",
+        "policyType",
+        "policyHolderName",
+        "sumInsured",
+        "remainingSumInsured",
+        "roomRentLimit",
+        "copay",
+        "deductible",
+        "coverageRestrictions",
+        "employerName",
+        "employeeId",
+        "schemeName",
+        "beneficiaryId",
+        "verificationStatus",
+        "verificationRemarks",
     ];
 
     for (const field of allowedFields) {
@@ -291,6 +373,16 @@ const updateInsurance = async (
         insurance.effectiveDate = new Date(
             updateData.effectiveDate
         );
+    }
+
+    if (updateData.expiryDate) {
+        const effDate = updateData.effectiveDate ? new Date(updateData.effectiveDate) : insurance.effectiveDate;
+        if (new Date(updateData.expiryDate) < new Date(effDate)) {
+            throw new Error(
+                "Policy expiry date cannot be earlier than effective date"
+            );
+        }
+        insurance.expiryDate = new Date(updateData.expiryDate);
     }
 
     if (updateData.isPrimary !== undefined) {
@@ -321,6 +413,11 @@ const updateInsurance = async (
             uploadedImages.backCardImage;
     }
 
+    if (uploadedImages?.policyDocument) {
+        insurance.policyDocument =
+            uploadedImages.policyDocument;
+    }
+
     await insurance.save();
 
     return insurance;
@@ -345,6 +442,7 @@ const deleteInsurance = async (patientId, insuranceId) => {
     const deletedImages = {
         frontCardImage: insurance.frontCardImage,
         backCardImage: insurance.backCardImage,
+        policyDocument: insurance.policyDocument,
     };
 
     await Insurance.deleteOne({

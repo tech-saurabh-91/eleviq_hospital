@@ -1,4 +1,5 @@
 const FamilyMember = require("./family-member.model");
+const Patient = require("../patient.model");
 
 const buildFamilyMemberResponse = (member) => {
     return {
@@ -34,79 +35,98 @@ const createFamilyMember = async (
     familyData,
     uploadedImage
 ) => {
-    const familyMember =
-        await FamilyMember.create({
-            patient: patientId,
+    // Fetch authenticated patient from database to inherit contact and address details
+    const patient = await Patient.findById(patientId);
 
-            firstName: familyData.firstName,
-            middleName: familyData.middleName,
-            lastName: familyData.lastName,
+    if (!patient) {
+        throw new Error("Patient not found");
+    }
 
-            relationship:
-                familyData.relationship,
+    const patientEmail = patient.email?.trim();
+    const patientPhone = (patient.primaryPhone || patient.mobile)?.trim();
+    const patientStreet = patient.address?.street?.trim();
+    const patientCity = patient.address?.city?.trim();
+    const patientState = patient.address?.state?.trim();
+    const patientZipCode = patient.address?.zipCode?.trim();
 
-            dateOfBirth:
-                familyData.dateOfBirth,
+    if (
+        !patientEmail ||
+        !patientPhone ||
+        !patientStreet ||
+        !patientCity ||
+        !patientState ||
+        !patientZipCode
+    ) {
+        throw new Error(
+            "Patient profile is incomplete. Please complete your email, phone number, and address in your profile before adding family members."
+        );
+    }
 
-            gender: familyData.gender,
+    // Contact and address details are strictly inherited from the registered patient
+    // Client-submitted contact/address values are never trusted during creation
+    const familyMember = await FamilyMember.create({
+        patient: patientId,
 
-            email: familyData.email,
-            phone: familyData.phone,
+        firstName: familyData.firstName,
+        middleName: familyData.middleName,
+        lastName: familyData.lastName,
 
-            address: familyData.address,
+        relationship: familyData.relationship,
 
-            insuranceCoverage:
-                familyData.insuranceCoverage || "patient",
+        dateOfBirth: familyData.dateOfBirth,
 
-            profilePicture: uploadedImage
-                ? {
-                    publicId:
-                        uploadedImage.publicId,
-                    url:
-                        uploadedImage.url,
-                }
-                : undefined,
-        });
+        gender: familyData.gender,
 
-    return buildFamilyMemberResponse(
-        familyMember
-    );
+        email: patientEmail.toLowerCase(),
+        phone: patientPhone,
+
+        address: {
+            street: patientStreet,
+            city: patientCity,
+            state: patientState,
+            zipCode: patientZipCode,
+        },
+
+        insuranceCoverage:
+            familyData.insuranceCoverage || "patient",
+
+        profilePicture: uploadedImage
+            ? {
+                publicId: uploadedImage.publicId,
+                url: uploadedImage.url,
+            }
+            : undefined,
+    });
+
+    return buildFamilyMemberResponse(familyMember);
 };
 
 const getFamilyMembers = async (patientId) => {
-    const familyMembers =
-        await FamilyMember.find({
-            patient: patientId,
-            status: "active",
-        }).sort({
-            createdAt: -1,
-        });
+    const familyMembers = await FamilyMember.find({
+        patient: patientId,
+        status: "active",
+    }).sort({
+        createdAt: -1,
+    });
 
-    return familyMembers.map(
-        buildFamilyMemberResponse
-    );
+    return familyMembers.map(buildFamilyMemberResponse);
 };
 
 const getFamilyMember = async (
     patientId,
     familyMemberId
 ) => {
-    const familyMember =
-        await FamilyMember.findOne({
-            _id: familyMemberId,
-            patient: patientId,
-            status: "active",
-        });
+    const familyMember = await FamilyMember.findOne({
+        _id: familyMemberId,
+        patient: patientId,
+        status: "active",
+    });
 
     if (!familyMember) {
-        throw new Error(
-            "Family member not found"
-        );
+        throw new Error("Family member not found");
     }
 
-    return buildFamilyMemberResponse(
-        familyMember
-    );
+    return buildFamilyMemberResponse(familyMember);
 };
 
 const updateFamilyMember = async (
@@ -114,17 +134,14 @@ const updateFamilyMember = async (
     familyMemberId,
     updateData
 ) => {
-    const familyMember =
-        await FamilyMember.findOne({
-            _id: familyMemberId,
-            patient: patientId,
-            status: "active",
-        });
+    const familyMember = await FamilyMember.findOne({
+        _id: familyMemberId,
+        patient: patientId,
+        status: "active",
+    });
 
     if (!familyMember) {
-        throw new Error(
-            "Family member not found"
-        );
+        throw new Error("Family member not found");
     }
 
     const allowedFields = [
@@ -141,8 +158,7 @@ const updateFamilyMember = async (
 
     for (const field of allowedFields) {
         if (updateData[field] !== undefined) {
-            familyMember[field] =
-                updateData[field];
+            familyMember[field] = updateData[field];
         }
     }
 
@@ -153,28 +169,24 @@ const updateFamilyMember = async (
         };
     }
 
+    // Save only to FamilyMember collection, leaving patient profile untouched
     await familyMember.save();
 
-    return buildFamilyMemberResponse(
-        familyMember
-    );
+    return buildFamilyMemberResponse(familyMember);
 };
 
 const removeFamilyMember = async (
     patientId,
     familyMemberId
 ) => {
-    const familyMember =
-        await FamilyMember.findOne({
-            _id: familyMemberId,
-            patient: patientId,
-            status: "active",
-        });
+    const familyMember = await FamilyMember.findOne({
+        _id: familyMemberId,
+        patient: patientId,
+        status: "active",
+    });
 
     if (!familyMember) {
-        throw new Error(
-            "Family member not found"
-        );
+        throw new Error("Family member not found");
     }
 
     familyMember.status = "inactive";
@@ -182,11 +194,8 @@ const removeFamilyMember = async (
     await familyMember.save();
 
     return {
-        familyMemberId:
-            familyMember._id,
-
-        message:
-            "Family member removed successfully",
+        familyMemberId: familyMember._id,
+        message: "Family member removed successfully",
     };
 };
 

@@ -23,6 +23,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
 import Image from 'next/image';
 import Link from "next/link";
 
@@ -30,6 +31,7 @@ import api from "@/helper/axios";
 import { PATIENT_INSURANCE_API } from "@/helper/api";
 import { useEffect } from "react";
 import { toast } from "sonner";
+import { FeatureStatusModal } from "@/components/common/FeatureStatus";
 
 // Types
 interface InsurancePolicy {
@@ -40,11 +42,20 @@ interface InsurancePolicy {
   memberName: string;
   relationship: string;
   startDate: string;
+  expiryDate?: string;
   isPrimary: boolean;
   isActive: boolean;
   coverageType: string;
   frontImageUrl?: string;
   backImageUrl?: string;
+  tpa?: string;
+  planName?: string;
+  policyType?: string;
+  sumInsured?: number;
+  roomRentLimit?: string;
+  copay?: string;
+  verificationStatus?: "Pending" | "Verified" | "Rejected" | "Expired";
+  policyDocumentUrl?: string;
 }
 
 interface BillingRecord {
@@ -59,67 +70,30 @@ interface BillingRecord {
   patientName?: string;
 }
 
-
-
-const billingRecords: BillingRecord[] = [
-  {
-    id: "1",
-    date: "2024-04-15",
-    description: "Annual Physical Examination",
-    totalAmount: 250.00,
-    insuranceCovered: 225.00,
-    patientResponsibility: 25.00,
-    status: 'paid',
-    receiptUrl: "/documents/receipt-1.pdf"
-  },
-  {
-    id: "2",
-    date: "2024-03-22",
-    description: "ENT Consultation - Ear Infection",
-    totalAmount: 175.00,
-    insuranceCovered: 140.00,
-    patientResponsibility: 35.00,
-    status: 'paid',
-    receiptUrl: "/documents/receipt-2.pdf"
-  },
-  {
-    id: "3",
-    date: "2024-04-05",
-    description: "X-Ray - Chest",
-    totalAmount: 320.00,
-    insuranceCovered: 240.00,
-    patientResponsibility: 80.00,
-    status: 'pending',
-    patientName: "John Smith"
-  },
-  {
-    id: "4",
-    date: "2024-02-28",
-    description: "Pediatric Checkup",
-    totalAmount: 150.00,
-    insuranceCovered: 150.00,
-    patientResponsibility: 0.00,
-    status: 'paid',
-    receiptUrl: "/documents/receipt-4.pdf",
-    patientName: "Emma Smith"
-  },
-];
+const initialBillingRecords: BillingRecord[] = [];
 
 // Insurance providers list
 const insuranceProviders = [
-  "Aetna",
-  "Blue Cross Blue Shield",
-  "Cigna",
-  "Delta Dental",
-  "Humana",
-  "Kaiser Permanente",
-  "Medicare",
-  "Medicaid",
-  "UnitedHealthcare",
+  "Star Health and Allied Insurance",
+  "Niva Bupa Health Insurance",
+  "Care Health Insurance",
+  "HDFC ERGO Health Insurance",
+  "ICICI Lombard General Insurance",
+  "Aditya Birla Health Insurance",
+  "ManipalCigna Health Insurance",
+  "Tata AIG General Insurance",
+  "Bajaj Allianz General Insurance",
+  "New India Assurance",
+  "National Insurance Company",
+  "United India Insurance",
+  "Oriental Insurance",
+  "Reliance General Insurance",
+  "SBI General Insurance",
   "Other"
 ];
 
 export default function InsurancePage() {
+  const [billingRecords] = useState<BillingRecord[]>(initialBillingRecords);
   const [showEditInsuranceDialog, setShowEditInsuranceDialog] = useState(false);
   const [showAddInsuranceDialog, setShowAddInsuranceDialog] = useState(false);
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -128,6 +102,7 @@ export default function InsurancePage() {
   const [deletingInsuranceId, setDeletingInsuranceId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [paymentModalOpen, setPaymentModalOpen] = useState(false);
 
   const [addInsuranceLoading, setAddInsuranceLoading] = useState(false);
 
@@ -174,11 +149,20 @@ export default function InsurancePage() {
               : "You",
           relationship: insurance.relationship,
           startDate: insurance.effectiveDate,
+          expiryDate: insurance.expiryDate,
           isPrimary: insurance.isPrimary,
           isActive: true,
           coverageType: insurance.coverageType,
           frontImageUrl: insurance.frontCardImage?.url,
           backImageUrl: insurance.backCardImage?.url,
+          tpa: insurance.tpa,
+          planName: insurance.planName,
+          policyType: insurance.policyType,
+          sumInsured: insurance.sumInsured,
+          roomRentLimit: insurance.roomRentLimit,
+          copay: insurance.copay,
+          verificationStatus: insurance.verificationStatus || "Pending",
+          policyDocumentUrl: insurance.policyDocument?.url,
         }));
 
         setInsurancePolicies(policies);
@@ -379,13 +363,20 @@ export default function InsurancePage() {
               : "You",
           relationship: insurance.relationship,
           startDate: insurance.effectiveDate,
+          expiryDate: insurance.expiryDate,
           isPrimary: insurance.isPrimary,
           isActive: true,
           coverageType: insurance.coverageType,
-          frontImageUrl:
-            insurance.frontCardImage?.url,
-          backImageUrl:
-            insurance.backCardImage?.url,
+          frontImageUrl: insurance.frontCardImage?.url,
+          backImageUrl: insurance.backCardImage?.url,
+          tpa: insurance.tpa,
+          planName: insurance.planName,
+          policyType: insurance.policyType,
+          sumInsured: insurance.sumInsured,
+          roomRentLimit: insurance.roomRentLimit,
+          copay: insurance.copay,
+          verificationStatus: insurance.verificationStatus || "Pending",
+          policyDocumentUrl: insurance.policyDocument?.url,
         })
       );
 
@@ -450,16 +441,31 @@ export default function InsurancePage() {
                           <CreditCard className="h-5 w-5 text-customTeal" />
                         </div>
                         <div>
-                          <CardTitle className="flex items-center">
-                            {policy.provider}
+                          <CardTitle className="flex items-center flex-wrap gap-2">
+                            <span>{policy.provider}</span>
                             {policy.isPrimary && (
-                              <span className="ml-2 text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-medium">
+                              <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-medium">
                                 Primary
                               </span>
                             )}
+                            <Badge
+                              variant="outline"
+                              className={
+                                policy.verificationStatus === "Verified"
+                                  ? "bg-emerald-50 text-emerald-700 border-emerald-300 text-xs"
+                                  : policy.verificationStatus === "Rejected"
+                                  ? "bg-red-50 text-red-700 border-red-300 text-xs"
+                                  : "bg-amber-50 text-amber-700 border-amber-300 text-xs"
+                              }
+                            >
+                              {policy.verificationStatus || "Pending"}
+                            </Badge>
                           </CardTitle>
                           <CardDescription>
-                            {policy.coverageType} · {policy.relationship === "Self" ? "Your Policy" : `${policy.memberName}'s Policy`}
+                            {policy.coverageType}
+                            {policy.planName && ` · ${policy.planName}`}
+                            {policy.tpa && ` · TPA: ${policy.tpa}`}
+                            {policy.policyType && ` (${policy.policyType})`}
                           </CardDescription>
                         </div>
                       </div>
@@ -469,6 +475,7 @@ export default function InsurancePage() {
                             variant="ghost"
                             size="icon"
                             className="text-gray-500 hover:text-customTeal"
+                            title="Edit Insurance"
                           >
                             <Pencil className="h-4 w-4" />
                           </Button>
@@ -480,13 +487,11 @@ export default function InsurancePage() {
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
-                            <DropdownMenuItem className="flex items-center">
-                              <FileText className="h-4 w-4 mr-2" />
-                              View Details
-                            </DropdownMenuItem>
-                            <DropdownMenuItem className="flex items-center">
-                              <Download className="h-4 w-4 mr-2" />
-                              Download Card Images
+                            <DropdownMenuItem className="flex items-center" asChild>
+                              <Link href={`/patient/insurance/${policy.id}/edit`}>
+                                <FileText className="h-4 w-4 mr-2" />
+                                Edit / View Details
+                              </Link>
                             </DropdownMenuItem>
                             <DropdownMenuItem
                               className="text-red-600 flex items-center"
@@ -503,34 +508,64 @@ export default function InsurancePage() {
                     </div>
                   </CardHeader>
                   <CardContent className="pb-1">
-                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-y-3 gap-x-4 text-sm">
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-y-3 gap-x-4 text-sm">
                       <div>
                         <p className="text-gray-500">Policy Number</p>
                         <p className="font-medium">{policy.policyNumber}</p>
                       </div>
-                      {policy.groupNumber && (
-                        <div>
-                          <p className="text-gray-500">Group Number</p>
-                          <p className="font-medium">{policy.groupNumber}</p>
-                        </div>
-                      )}
                       <div>
-                        <p className="text-gray-500">Member Name</p>
+                        <p className="text-gray-500">Sum Insured</p>
+                        <p className="font-medium text-emerald-700">
+                          {policy.sumInsured
+                            ? `₹${Number(policy.sumInsured).toLocaleString("en-IN")}`
+                            : "Covered"}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-gray-500">Insured Member</p>
                         <p className="font-medium">
                           {policy.memberName}
                           {policy.relationship !== "Self" && ` (${policy.relationship})`}
                         </p>
                       </div>
                       <div>
-                        <p className="text-gray-500">Active Since</p>
-                        <p className="font-medium">{new Date(policy.startDate).toLocaleDateString()}</p>
-                      </div>
-                      <div>
-                        <p className="text-gray-500">Status</p>
-                        <p className={`font-medium ${policy.isActive ? 'text-green-600' : 'text-red-600'}`}>
-                          {policy.isActive ? 'Active' : 'Inactive'}
+                        <p className="text-gray-500">Validity</p>
+                        <p className="font-medium">
+                          {new Date(policy.startDate).toLocaleDateString()}
+                          {policy.expiryDate && ` - ${new Date(policy.expiryDate).toLocaleDateString()}`}
                         </p>
                       </div>
+                      {policy.tpa && (
+                        <div>
+                          <p className="text-gray-500">TPA</p>
+                          <p className="font-medium">{policy.tpa}</p>
+                        </div>
+                      )}
+                      {policy.roomRentLimit && (
+                        <div>
+                          <p className="text-gray-500">Room Rent Limit</p>
+                          <p className="font-medium">{policy.roomRentLimit}</p>
+                        </div>
+                      )}
+                      {policy.groupNumber && (
+                        <div>
+                          <p className="text-gray-500">Group Number</p>
+                          <p className="font-medium">{policy.groupNumber}</p>
+                        </div>
+                      )}
+                      {policy.policyDocumentUrl && (
+                        <div>
+                          <p className="text-gray-500">Policy Document</p>
+                          <a
+                            href={policy.policyDocumentUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-customTeal hover:underline flex items-center gap-1 font-medium text-xs mt-1"
+                          >
+                            <FileText className="h-3 w-3" /> View Schedule
+                          </a>
+                        </div>
+                      )}
                     </div>
                   </CardContent>
                   {(policy.frontImageUrl || policy.backImageUrl) && (
@@ -622,16 +657,25 @@ export default function InsurancePage() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {billingRecords.map((record) => (
+                    {billingRecords.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={8} className="text-center py-8 text-gray-500">
+                          <Receipt className="h-8 w-8 text-gray-300 mx-auto mb-2" />
+                          <p className="font-medium text-gray-700">No Billing Records Found</p>
+                          <p className="text-xs text-gray-400">Official hospital billing statements and cashless settlement receipts will appear here.</p>
+                        </TableCell>
+                      </TableRow>
+                    ) : (
+                      billingRecords.map((record) => (
                       <TableRow key={record.id}>
                         <TableCell className="font-medium">
                           {new Date(record.date).toLocaleDateString()}
                         </TableCell>
                         <TableCell>{record.description}</TableCell>
                         <TableCell>{record.patientName || "You"}</TableCell>
-                        <TableCell className="text-right">${record.totalAmount.toFixed(2)}</TableCell>
-                        <TableCell className="text-right">${record.insuranceCovered.toFixed(2)}</TableCell>
-                        <TableCell className="text-right">${record.patientResponsibility.toFixed(2)}</TableCell>
+                        <TableCell className="text-right">₹{record.totalAmount.toLocaleString("en-IN")}</TableCell>
+                        <TableCell className="text-right">₹{record.insuranceCovered.toLocaleString("en-IN")}</TableCell>
+                        <TableCell className="text-right">₹{record.patientResponsibility.toLocaleString("en-IN")}</TableCell>
                         <TableCell className="text-right">
                           <span
                             className={`
@@ -664,13 +708,15 @@ export default function InsurancePage() {
                             <Button
                               size="sm"
                               className="h-8 px-2 bg-customTeal hover:bg-customTeal/90 text-white"
+                              onClick={() => setPaymentModalOpen(true)}
                             >
                               Pay Now
                             </Button>
                           )}
                         </TableCell>
                       </TableRow>
-                    ))}
+                    ))
+                    )}
                   </TableBody>
                 </Table>
               </div>
@@ -1331,6 +1377,16 @@ export default function InsurancePage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <FeatureStatusModal
+        open={paymentModalOpen}
+        onOpenChange={setPaymentModalOpen}
+        type="currently-unavailable"
+        featureName="Online Hospital Bill Payment"
+        title="Online Bill Payment & Cashless Settlement"
+        description="Online payment gateway integration for hospital billing settlement is currently in progress. Please settle invoices directly at the hospital cash counter or via direct bank transfer."
+        missingDependency="POST /api/patient/payments/intent"
+      />
     </div>
   );
 }

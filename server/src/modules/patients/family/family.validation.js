@@ -5,14 +5,14 @@ const nameSchema = z
     .trim()
     .min(1, "This field is required")
     .max(50, "Must be 50 characters or less")
-    .regex(/^[A-Za-zÀ-ÿ\s'-]+$/, "Contains invalid characters");
+    .regex(/^[A-Za-zÀ-ÿ\u0900-\u097F\s.'-]+$/, "Contains invalid characters");
 
 const locationNameSchema = z
     .string()
     .trim()
     .min(2, "This field is required")
     .max(100, "Must be 100 characters or less")
-    .regex(/^[A-Za-zÀ-ÿ][A-Za-zÀ-ÿ .'-]*$/, "Contains invalid characters");
+    .regex(/^[A-Za-zÀ-ÿ\u0900-\u097F][A-Za-zÀ-ÿ\u0900-\u097F .'-]*$/, "Contains invalid characters");
 
 const relationshipSchema = z.enum([
     "father",
@@ -82,7 +82,7 @@ const createFamilyMemberSchema = z
             .string()
             .trim()
             .max(50, "Middle name must be 50 characters or less")
-            .regex(/^[A-Za-zÀ-ÿ\s'-]*$/, "Middle name contains invalid characters")
+            .regex(/^[A-Za-zÀ-ÿ\u0900-\u097F\s.'-]*$/, "Middle name contains invalid characters")
             .optional(),
 
         lastName: nameSchema,
@@ -93,24 +93,26 @@ const createFamilyMemberSchema = z
 
         gender: z.enum(["male", "female", "other"]),
 
-        address: addressSchema,
+        insuranceCoverage: z
+            .enum(["patient", "own"])
+            .default("patient"),
+
+        // Client may optionally pass or omit these; backend will populate them from the authenticated patient
+        address: addressSchema.optional(),
 
         email: z
             .string()
             .trim()
             .toLowerCase()
-            .email("Invalid email address"),
+            .email("Invalid email address")
+            .optional(),
 
         phone: z
             .string()
             .trim()
-            .regex(/^[6-9]\d{9}$/, "Enter a valid 10-digit mobile number"),
-
-        insuranceCoverage: z
-            .enum(["patient", "own"])
-            .default("patient"),
-    })
-    .strict();
+            .regex(/^[6-9]\d{9}$/, "Enter a valid 10-digit mobile number")
+            .optional(),
+    });
 
 const updateFamilyMemberSchema = z
     .object({
@@ -120,12 +122,12 @@ const updateFamilyMemberSchema = z
             .string()
             .trim()
             .max(50)
-            .regex(/^[A-Za-zÀ-ÿ\s'-]*$/)
+            .regex(/^[A-Za-zÀ-ÿ\u0900-\u097F\s.'-]*$/)
             .optional(),
 
         lastName: nameSchema.optional(),
 
-        relationship: relationshipSchema,
+        relationship: relationshipSchema.optional(),
 
         dateOfBirth: dateOfBirthSchema.optional(),
 

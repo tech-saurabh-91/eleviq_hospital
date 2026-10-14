@@ -160,7 +160,7 @@ export default function EditFamilyMemberPage() {
       return "First name must be 50 characters or less.";
     }
 
-    if (!/^[A-Za-zÀ-ÿ\s'-]+$/.test(firstName)) {
+    if (!/^[A-Za-zÀ-ÿ\u0900-\u097F\s.'-]+$/.test(firstName)) {
       return "First name contains invalid characters.";
     }
 
@@ -170,7 +170,7 @@ export default function EditFamilyMemberPage() {
 
     if (
       middleName &&
-      !/^[A-Za-zÀ-ÿ\s'-]+$/.test(middleName)
+      !/^[A-Za-zÀ-ÿ\u0900-\u097F\s.'-]*$/.test(middleName)
     ) {
       return "Middle name contains invalid characters.";
     }
@@ -183,7 +183,7 @@ export default function EditFamilyMemberPage() {
       return "Last name must be 50 characters or less.";
     }
 
-    if (!/^[A-Za-zÀ-ÿ\s'-]+$/.test(lastName)) {
+    if (!/^[A-Za-zÀ-ÿ\u0900-\u097F\s.'-]+$/.test(lastName)) {
       return "Last name contains invalid characters.";
     }
 
@@ -237,7 +237,7 @@ export default function EditFamilyMemberPage() {
       return "City must contain at least 2 characters.";
     }
 
-    if (!/^[A-Za-zÀ-ÿ][A-Za-zÀ-ÿ .'-]*$/.test(city)) {
+    if (!/^[A-Za-zÀ-ÿ\u0900-\u097F][A-Za-zÀ-ÿ\u0900-\u097F .'-]*$/.test(city)) {
       return "City contains invalid characters.";
     }
 
@@ -249,7 +249,7 @@ export default function EditFamilyMemberPage() {
       return "State must contain at least 2 characters.";
     }
 
-    if (!/^[A-Za-zÀ-ÿ][A-Za-zÀ-ÿ .'-]*$/.test(state)) {
+    if (!/^[A-Za-zÀ-ÿ\u0900-\u097F][A-Za-zÀ-ÿ\u0900-\u097F .'-]*$/.test(state)) {
       return "State contains invalid characters.";
     }
 

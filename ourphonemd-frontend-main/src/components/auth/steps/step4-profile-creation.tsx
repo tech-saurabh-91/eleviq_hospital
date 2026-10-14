@@ -47,7 +47,7 @@ export function Step4ProfileCreation() {
 
   const selectedState = formContext?.watch("state");
 
-  const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "";
+  const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
 
   const LOCATION_API_URL = API_BASE_URL.endsWith("/api")
     ? `${API_BASE_URL}/locations`

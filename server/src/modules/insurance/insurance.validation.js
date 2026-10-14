@@ -95,6 +95,101 @@ const createInsuranceSchema = z.object({
         .string()
         .trim()
         .optional(),
+
+    policyDocument: z
+        .string()
+        .trim()
+        .optional(),
+
+    // Indian HMS Insurance Fields
+    tpa: z
+        .string()
+        .trim()
+        .optional(),
+
+    planName: z
+        .string()
+        .trim()
+        .optional(),
+
+    policyType: z
+        .string()
+        .trim()
+        .optional(),
+
+    policyHolderName: z
+        .string()
+        .trim()
+        .optional(),
+
+    expiryDate: z
+        .string()
+        .trim()
+        .optional(),
+
+    sumInsured: z.preprocess((val) => {
+        if (val === "" || val === undefined || val === null) return undefined;
+        const num = Number(val);
+        return isNaN(num) ? undefined : num;
+    }, z.number().nonnegative().optional()),
+
+    remainingSumInsured: z.preprocess((val) => {
+        if (val === "" || val === undefined || val === null) return undefined;
+        const num = Number(val);
+        return isNaN(num) ? undefined : num;
+    }, z.number().nonnegative().optional()),
+
+    roomRentLimit: z
+        .string()
+        .trim()
+        .optional(),
+
+    copay: z
+        .string()
+        .trim()
+        .optional(),
+
+    deductible: z
+        .string()
+        .trim()
+        .optional(),
+
+    coverageRestrictions: z
+        .string()
+        .trim()
+        .optional(),
+
+    // Group / Employer Insurance
+    employerName: z
+        .string()
+        .trim()
+        .optional(),
+
+    employeeId: z
+        .string()
+        .trim()
+        .optional(),
+
+    // Government Schemes
+    schemeName: z
+        .string()
+        .trim()
+        .optional(),
+
+    beneficiaryId: z
+        .string()
+        .trim()
+        .optional(),
+
+    // Verification
+    verificationStatus: z
+        .enum(["Pending", "Verified", "Rejected", "Expired"])
+        .optional(),
+
+    verificationRemarks: z
+        .string()
+        .trim()
+        .optional(),
 });
 
 const updateInsuranceSchema = z.object({
@@ -124,6 +219,38 @@ const updateInsuranceSchema = z.object({
     subscriberSsn: z.string().trim().optional(),
     subscriberDateOfBirth: z.string().trim().optional(),
     subscriberAddress: z.string().trim().optional(),
+
+    // Indian HMS Insurance Fields
+    tpa: z.string().trim().optional(),
+    planName: z.string().trim().optional(),
+    policyType: z.string().trim().optional(),
+    policyHolderName: z.string().trim().optional(),
+    expiryDate: z.string().trim().optional(),
+    sumInsured: z.preprocess((val) => {
+        if (val === "" || val === undefined || val === null) return undefined;
+        const num = Number(val);
+        return isNaN(num) ? undefined : num;
+    }, z.number().nonnegative().optional()),
+    remainingSumInsured: z.preprocess((val) => {
+        if (val === "" || val === undefined || val === null) return undefined;
+        const num = Number(val);
+        return isNaN(num) ? undefined : num;
+    }, z.number().nonnegative().optional()),
+    roomRentLimit: z.string().trim().optional(),
+    copay: z.string().trim().optional(),
+    deductible: z.string().trim().optional(),
+    coverageRestrictions: z.string().trim().optional(),
+    employerName: z.string().trim().optional(),
+    employeeId: z.string().trim().optional(),
+    schemeName: z.string().trim().optional(),
+    beneficiaryId: z.string().trim().optional(),
+    policyDocument: z.string().trim().optional(),
+    frontCardImage: z.string().trim().optional(),
+    backCardImage: z.string().trim().optional(),
+    verificationStatus: z.enum(["Pending", "Verified", "Rejected", "Expired"]).optional(),
+    verificationRemarks: z.string().trim().optional(),
+    verificationDate: z.string().trim().optional(),
+    verifiedBy: z.string().trim().optional(),
 }).strict().refine(
     (data) => Object.keys(data).length > 0,
     {

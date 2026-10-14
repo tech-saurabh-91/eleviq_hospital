@@ -9,19 +9,24 @@ const UserContext = createContext<IUserContextType | undefined>(undefined);
 export const organizationId = "cm7c5c96u0005ijpwi6t9idnz";
 
 const mapPatientProfile = (profile: any): IUser => ({
-  id: profile.patientId,
+  id: profile.patientId || profile._id,
   email: profile.email,
   firstName: profile.firstName,
+  middleName: profile.middleName || "",
   lastName: profile.lastName,
   phoneNumber: profile.primaryPhone || profile.mobile || "",
+  secondaryPhone: profile.secondaryPhone || "",
   dateOfBirth: profile.dateOfBirth,
   gender: String(profile.gender || "OTHER").toUpperCase() as IUser["gender"],
   address: profile.address?.street || "",
   city: profile.address?.city || "",
   state: profile.address?.state || "",
   zipCode: profile.address?.zipCode || "",
-  createdAt: profile.memberSince,
-  updatedAt: profile.lastUpdated,
+  bloodType: profile.bloodType || "",
+  allergies: Array.isArray(profile.allergies) ? profile.allergies : [],
+  avatar: profile.profilePicture?.url || "",
+  createdAt: profile.memberSince || profile.createdAt,
+  updatedAt: profile.lastUpdated || profile.updatedAt,
 });
 
 export const UserProvider = ({ children }: { children: React.ReactNode }) => {
@@ -59,7 +64,6 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
       window.removeEventListener("patient-session-expired", clearExpiredSession);
     };
   }, []);
-
 
   const handleSetUser = useCallback((userData: IUser | null) => {
     setUser(userData);
