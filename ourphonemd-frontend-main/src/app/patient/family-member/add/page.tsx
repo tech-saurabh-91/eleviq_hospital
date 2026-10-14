@@ -1,13 +1,17 @@
 "use client";
 
 import React, { useState } from "react";
-import { ArrowLeft, Save, UserPlus } from "lucide-react";
+import { ArrowLeft, Save, UserPlus, ShieldCheck } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useFamilyMember } from "@/hooks/useFamilyMember";
+import {
+  formatFamilyDateInput,
+  isValidPastFamilyDate,
+} from "@/lib/family-member";
 
 const relationshipOptions = [
   { value: "father", label: "Father" },
@@ -39,14 +43,6 @@ const initialForm = {
   relationship: "",
   dateOfBirth: "",
   gender: "",
-  email: "",
-  phone: "",
-
-  street: "",
-  city: "",
-  state: "",
-  zipCode: "",
-
   insuranceCoverage: "patient",
 };
 
@@ -71,32 +67,14 @@ export default function AddFamilyMemberPage() {
 
     setForm((prev) => ({
       ...prev,
-      [name]: value,
+      [name]: name === "dateOfBirth" ? formatFamilyDateInput(value) : value,
     }));
-  };
-
-  const formatDateForBackend = (value: string) => {
-    if (!value) return "";
-
-    const [year, month, day] = value.split("-");
-
-    if (!year || !month || !day) {
-      return "";
-    }
-
-    return `${month}/${day}/${year}`;
   };
 
   const validateForm = () => {
     const firstName = form.firstName.trim();
     const middleName = form.middleName.trim();
     const lastName = form.lastName.trim();
-    const email = form.email.trim();
-    const phone = form.phone.trim();
-    const street = form.street.trim();
-    const city = form.city.trim();
-    const state = form.state.trim();
-    const zipCode = form.zipCode.trim();
 
     if (!firstName) {
       return "First name is required";
@@ -106,7 +84,7 @@ export default function AddFamilyMemberPage() {
       return "First name must be 50 characters or less";
     }
 
-    if (!/^[A-Za-zÀ-ÿ\s'-]+$/.test(firstName)) {
+    if (!/^[A-Za-zÀ-ÿ\u0900-\u097F\s.'-]+$/.test(firstName)) {
       return "First name contains invalid characters";
     }
 
@@ -116,7 +94,7 @@ export default function AddFamilyMemberPage() {
 
     if (
       middleName &&
-      !/^[A-Za-zÀ-ÿ\s'-]+$/.test(middleName)
+      !/^[A-Za-zÀ-ÿ\u0900-\u097F\s.'-]*$/.test(middleName)
     ) {
       return "Middle name contains invalid characters";
     }
@@ -129,7 +107,7 @@ export default function AddFamilyMemberPage() {
       return "Last name must be 50 characters or less";
     }
 
-    if (!/^[A-Za-zÀ-ÿ\s'-]+$/.test(lastName)) {
+    if (!/^[A-Za-zÀ-ÿ\u0900-\u097F\s.'-]+$/.test(lastName)) {
       return "Last name contains invalid characters";
     }
 
@@ -141,65 +119,12 @@ export default function AddFamilyMemberPage() {
       return "Date of birth is required";
     }
 
-    const selectedDate = new Date(form.dateOfBirth);
-    const today = new Date();
-
-    if (selectedDate > today) {
-      return "Date of birth cannot be in the future";
+    if (!isValidPastFamilyDate(form.dateOfBirth)) {
+      return "Enter a valid past date in DD/MM/YYYY format";
     }
 
     if (!form.gender) {
       return "Gender is required";
-    }
-
-    if (!email) {
-      return "Email is required";
-    }
-
-    if (
-      !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
-    ) {
-      return "Please enter a valid email address";
-    }
-
-    if (!phone) {
-      return "Phone number is required";
-    }
-
-    if (!/^\+?[0-9]{10}$/.test(phone)) {
-      return "Phone number must contain 10 digits";
-    }
-
-    if (!street) {
-      return "Street address is required";
-    }
-
-    if (street.length > 200) {
-      return "Street address must be 200 characters or less";
-    }
-
-    if (!city) {
-      return "City is required";
-    }
-
-    if (city.length > 100) {
-      return "City must be 100 characters or less";
-    }
-
-    if (!state) {
-      return "State is required";
-    }
-
-    if (state.length > 100) {
-      return "State must be 100 characters or less";
-    }
-
-    if (!zipCode) {
-      return "PIN code is required";
-    }
-
-    if (!/^[0-9]{6}$/.test(zipCode)) {
-      return "PIN code must contain 6 digits";
     }
 
     return "";
@@ -233,31 +158,13 @@ export default function AddFamilyMemberPage() {
 
         relationship: form.relationship,
 
-        dateOfBirth: formatDateForBackend(
-          form.dateOfBirth
-        ),
+        dateOfBirth: form.dateOfBirth,
 
         gender: form.gender,
-
-        email: form.email.trim().toLowerCase(),
-
-        phone: form.phone.trim(),
-
-        address: {
-          street: form.street.trim(),
-          city: form.city.trim(),
-          state: form.state.trim(),
-          zipCode: form.zipCode.trim(),
-        },
 
         insuranceCoverage:
           form.insuranceCoverage,
       };
-
-      console.log(
-        "Creating family member:",
-        payload
-      );
 
       const createdMember = await createFamilyMember(payload);
 
@@ -325,6 +232,21 @@ export default function AddFamilyMemberPage() {
 
       <form onSubmit={handleSubmit}>
         <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+          {/* Inherited Contact & Address Notice */}
+          <div className="mx-5 sm:mx-6 mt-6 p-4 rounded-lg bg-teal-50/70 border border-teal-200 flex items-start gap-3">
+            <div className="p-1.5 rounded-full bg-customTeal/10 text-customTeal mt-0.5 shrink-0">
+              <ShieldCheck className="h-4 w-4" />
+            </div>
+            <div className="text-sm">
+              <p className="font-semibold text-gray-900">
+                Contact & Address Details Automatically Inherited
+              </p>
+              <p className="text-gray-600 mt-0.5 text-xs">
+                Email address, phone number, and residential address will be automatically linked from your registered patient profile. You can customize them individually anytime after adding this family member.
+              </p>
+            </div>
+          </div>
+
           {/* Personal Information */}
           <section className="p-5 sm:p-6">
             <h2 className="text-lg font-semibold text-customTeal mb-1">
@@ -332,7 +254,7 @@ export default function AddFamilyMemberPage() {
             </h2>
 
             <p className="text-sm text-gray-500 mb-6">
-              Enter the family members personal details.
+              Enter the family member&apos;s personal details.
             </p>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
@@ -346,7 +268,7 @@ export default function AddFamilyMemberPage() {
                   name="firstName"
                   value={form.firstName}
                   onChange={handleChange}
-                  placeholder="Enter first Name"
+                  placeholder="Enter first name"
                 />
               </div>
 
@@ -360,7 +282,7 @@ export default function AddFamilyMemberPage() {
                   name="middleName"
                   value={form.middleName}
                   onChange={handleChange}
-                  placeholder="Enter middle Name"
+                  placeholder="Enter middle name"
                 />
               </div>
 
@@ -374,7 +296,7 @@ export default function AddFamilyMemberPage() {
                   name="lastName"
                   value={form.lastName}
                   onChange={handleChange}
-                  placeholder="Enter last Name"
+                  placeholder="Enter last name"
                 />
               </div>
 
@@ -414,10 +336,13 @@ export default function AddFamilyMemberPage() {
                 </label>
 
                 <Input
-                  type="date"
+                  type="text"
                   name="dateOfBirth"
                   value={form.dateOfBirth}
                   onChange={handleChange}
+                  placeholder="DD/MM/YYYY"
+                  inputMode="numeric"
+                  maxLength={10}
                 />
               </div>
 
@@ -446,117 +371,6 @@ export default function AddFamilyMemberPage() {
                     </option>
                   ))}
                 </select>
-              </div>
-
-              {/* Email */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                  Email Address *
-                </label>
-
-                <Input
-                  type="email"
-                  name="email"
-                  value={form.email}
-                  onChange={handleChange}
-                  placeholder="example@email.com"
-                />
-
-                <p className="text-xs text-gray-500 mt-1.5">
-                  Used for appointment notifications and reminders.
-                </p>
-              </div>
-
-              {/* Phone */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                  Phone Number *
-                </label>
-
-                <Input
-                  type="tel"
-                  name="phone"
-                  value={form.phone}
-                  onChange={handleChange}
-                  placeholder="Enter phone number"
-                  maxLength={10}
-                />
-              </div>
-            </div>
-          </section>
-
-          <div className="border-t" />
-
-          {/* Address */}
-          <section className="p-5 sm:p-6">
-            <h2 className="text-lg font-semibold text-customTeal mb-1">
-              Address
-            </h2>
-
-            <p className="text-sm text-gray-500 mb-6">
-              Enter the family members residential address.
-            </p>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-              {/* Street */}
-              <div className="md:col-span-2">
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                  Street Address *
-                </label>
-
-                <Input
-                  name="street"
-                  value={form.street}
-                  onChange={handleChange}
-                  placeholder="Enter street address"
-                  maxLength={200}
-                />
-              </div>
-
-              {/* City */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                  City *
-                </label>
-
-                <Input
-                  name="city"
-                  value={form.city}
-                  onChange={handleChange}
-                  placeholder="Enter city"
-                  maxLength={100}
-                />
-              </div>
-
-              {/* State */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                  State *
-                </label>
-
-                <Input
-                  name="state"
-                  value={form.state}
-                  onChange={handleChange}
-                  placeholder="Enter state"
-                  maxLength={100}
-                />
-              </div>
-
-              {/* ZIP */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                  PIN Code *
-                </label>
-
-                <Input
-                  name="zipCode"
-                  value={form.zipCode}
-                  onChange={handleChange}
-                  placeholder="Enter pincode"
-                  maxLength={6}
-                  inputMode="numeric"
-                />
               </div>
             </div>
           </section>
@@ -596,12 +410,12 @@ export default function AddFamilyMemberPage() {
 
                   <div>
                     <p className="font-medium text-gray-900">
-                      Use Primary Patients Insurance
+                      Use Primary Patient&apos;s Insurance
                     </p>
 
                     <p className="text-sm text-gray-500 mt-1">
                       This family member will use the primary
-                      patients insurance coverage.
+                      patient&apos;s insurance coverage.
                     </p>
                   </div>
                 </div>

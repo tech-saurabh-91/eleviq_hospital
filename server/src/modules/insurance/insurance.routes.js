@@ -35,6 +35,10 @@ router.post(
             name: "backCardImage",
             maxCount: 1,
         },
+        {
+            name: "policyDocument",
+            maxCount: 1,
+        },
     ]),
 
     validateInsuranceImages,
@@ -70,6 +74,10 @@ router.patch(
         },
         {
             name: "backCardImage",
+            maxCount: 1,
+        },
+        {
+            name: "policyDocument",
             maxCount: 1,
         },
     ]),

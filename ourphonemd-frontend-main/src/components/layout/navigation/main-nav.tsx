@@ -22,7 +22,7 @@ export function MainNav() {
     { href: "/about", label: "ABOUT US" },
     { href: "/services", label: "OUR SERVICES" },
     { href: "/contact", label: "CONTACT US" },
-    { href: "https://ourphonemd.com/ords/f?p=191:145", label: "PROVIDER LOGIN", isExternal: true }
+    { href: "/staff-login", label: "STAFF LOGIN" }
   ];
 
   return (

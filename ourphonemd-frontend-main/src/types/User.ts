@@ -4,30 +4,32 @@ export interface IUser {
   id: string;
   email: string;
   firstName: string;
+  middleName?: string;
   lastName: string;
   phoneNumber: string;
+  secondaryPhone?: string;
   dateOfBirth: string;
   gender: Gender;
   address: string;
   city: string;
   state: string;
   zipCode: string;
+  bloodType?: string;
+  allergies?: string[];
   createdAt: string;
   updatedAt: string;
   avatar?: string;
   name?: string;
   role?: string;
   status?: string;
-
 }
-
-
-
 
 export interface IUserContextType {
   user: IUser | null;
   setUser: (user: IUser | null) => void;
-  logout: () => void;
+  isLoadingUser: boolean;
+  refreshUser: () => Promise<IUser | null>;
+  logout: () => Promise<void>;
 }
 
 export interface RegisterUser {

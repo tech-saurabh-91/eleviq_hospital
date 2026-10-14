@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useEffect, useMemo } from "react";
-import { Calendar, Users, FileText } from "lucide-react";
+import React, { useEffect, useMemo, useState } from "react";
+import { Calendar, Users, FileText, Shield } from "lucide-react";
 import Link from "next/link";
 
 import DashboardCard from "@/components/reuseable-cards/PatientDashboardCard";
@@ -9,6 +9,8 @@ import DashboardCard from "@/components/reuseable-cards/PatientDashboardCard";
 import { useAppointments } from "@/hooks/useAppointments";
 import { useFamilyMember } from "@/hooks/useFamilyMember";
 import { useMedicalRecords } from "@/hooks/useMedicalRecords";
+import api from "@/helper/axios";
+import { PATIENT_INSURANCE_API } from "@/helper/api";
 
 const PatientHome = () => {
   // =========================
@@ -33,6 +35,9 @@ const PatientHome = () => {
     getAllMedicalRecords,
   } = useMedicalRecords();
 
+  const [insuranceCount, setInsuranceCount] = useState<number | null>(null);
+  const [insuranceLoading, setInsuranceLoading] = useState(false);
+
   // =========================
   // Fetch dashboard data
   // =========================
@@ -41,6 +46,22 @@ const PatientHome = () => {
     getAllAppointments();
     getAllFamilyMembers();
     getAllMedicalRecords();
+
+    const fetchInsuranceCount = async () => {
+      try {
+        setInsuranceLoading(true);
+        const res = await api.get(PATIENT_INSURANCE_API.GET);
+        const data = res.data?.data ?? res.data ?? [];
+        setInsuranceCount(Array.isArray(data) ? data.length : 0);
+      } catch (err) {
+        console.error("Error fetching insurance count:", err);
+        setInsuranceCount(0);
+      } finally {
+        setInsuranceLoading(false);
+      }
+    };
+
+    fetchInsuranceCount();
   }, []);
 
   // =========================
@@ -75,7 +96,8 @@ const PatientHome = () => {
   const dashboardLoading =
     appointmentsLoading ||
     familyLoading ||
-    medicalRecordsLoading;
+    medicalRecordsLoading ||
+    insuranceLoading;
 
   // =========================
   // Dashboard data
@@ -85,6 +107,7 @@ const PatientHome = () => {
     upcomingAppointments: upcomingAppointments.length,
     familyMembers: familyMembers.length,
     previousVisits: medicalRecords.length,
+    insurancePolicies: insuranceCount !== null ? insuranceCount : 0,
   };
 
   return (
@@ -122,36 +145,31 @@ const PatientHome = () => {
           color="bg-blue-500"
         />
 
-        {/* Previous Visits */}
+        {/* Clinical Records & Visits */}
         <DashboardCard
           icon={<FileText className="w-6 h-6" />}
-          title="Previous Visits"
+          title="Clinical Records"
           count={
             dashboardLoading
               ? "..."
               : dashboardData.previousVisits
           }
-          linkTo="/patient/visits"
+          linkTo="/patient/documents"
           color="bg-purple-500"
         />
 
-        {/* Support */}
-        <div className="bg-gradient-to-br from-customTeal to-blue-400 rounded-xl shadow-sm p-6 text-white flex flex-col justify-between">
-          <p className="text-lg font-semibold">
-            Need assistance?
-          </p>
-
-          <p className="text-sm opacity-90 mb-4">
-            Our support team is available 24/7
-          </p>
-
-          <Link
-            href="/patient/support"
-            className="bg-white text-customTeal py-2 px-4 rounded-md text-sm font-medium hover:bg-opacity-90 transition-colors self-start"
-          >
-            Contact Support
-          </Link>
-        </div>
+        {/* Insurance Policies */}
+        <DashboardCard
+          icon={<Shield className="w-6 h-6" />}
+          title="Health Insurance"
+          count={
+            dashboardLoading
+              ? "..."
+              : dashboardData.insurancePolicies
+          }
+          linkTo="/patient/insurance"
+          color="bg-emerald-600"
+        />
       </div>
 
       {/* Quick Actions */}
@@ -162,23 +180,29 @@ const PatientHome = () => {
           </h2>
         </div>
 
-        <div className="grid grid-cols-2 divide-y sm:divide-y-0 sm:divide-x">
+        <div className="grid grid-cols-1 sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x">
           <Link
             href="/patient/appointments/new"
             className="p-4 hover:bg-gray-50 transition-colors flex items-center gap-3"
           >
             <Calendar className="text-customTeal w-5 h-5" />
-
-            <span>Book New Appointment</span>
+            <span className="font-medium">Book New Appointment</span>
           </Link>
 
           <Link
-            href="/patient/family-member/new"
+            href="/patient/family-member/add"
             className="p-4 hover:bg-gray-50 transition-colors flex items-center gap-3"
           >
             <Users className="text-customTeal w-5 h-5" />
+            <span className="font-medium">Add Family Member</span>
+          </Link>
 
-            <span>Add Family Member</span>
+          <Link
+            href="/patient/insurance"
+            className="p-4 hover:bg-gray-50 transition-colors flex items-center gap-3"
+          >
+            <Shield className="text-customTeal w-5 h-5" />
+            <span className="font-medium">Manage Health Insurance</span>
           </Link>
         </div>
       </div>

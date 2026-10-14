@@ -22,14 +22,14 @@ export function TermsAndConditions() {
     <>
       <div className="bg-gray-50 p-4 rounded-lg border border-gray-200 overflow-y-auto space-y-4">
         <div className="text-center space-y-1">
-          <h3 className="font-semibold text-lg">OurPhoneMD Terms of Service</h3>
+          <h3 className="font-semibold text-lg">Eleviq Hospital Terms of Service</h3>
           <p className="text-gray-500">Please review our terms and conditions below</p>
         </div>
        
-        <p>Welcome to OurPhoneMD. By accessing our services, you agree to be bound by these Terms and Conditions.</p>
+        <p>Welcome to Eleviq Hospital. By accessing our services, you agree to be bound by these Terms and Conditions.</p>
        
         <h4 className="font-medium text-base mt-2">1. Medical Services</h4>
-        <p>OurPhoneMD provides telemedicine consultations and related healthcare services. We do not replace your primary care physician and recommend regular in-person check-ups.</p>
+        <p>Eleviq Hospital provides telemedicine consultations and related healthcare services. We do not replace your primary care physician and recommend regular in-person check-ups.</p>
        
         <h4 className="font-medium text-base mt-2">2. Privacy Policy</h4>
         <p>We are committed to protecting your privacy. All personal and medical information is handled in accordance with HIPAA regulations and our Privacy Policy.</p>
@@ -38,10 +38,10 @@ export function TermsAndConditions() {
         <p>You agree to provide accurate, complete, and updated information about yourself. You are responsible for maintaining the confidentiality of your account credentials.</p>
        
         <h4 className="font-medium text-base mt-2">4. Medical Emergencies</h4>
-        <p>OurPhoneMD is not designed for emergency situations. If you are experiencing a medical emergency, please dial 911 or go to your nearest emergency room immediately.</p>
+        <p>Eleviq Hospital is not designed for emergency situations. If you are experiencing a medical emergency, please dial 911 or go to your nearest emergency room immediately.</p>
        
         <h4 className="font-medium text-base mt-2">5. Limitation of Liability</h4>
-        <p>OurPhoneMD and its healthcare providers are not liable for any advice, diagnosis, or treatment provided through our platform, except as required by applicable law.</p>
+        <p>Eleviq Hospital and its healthcare providers are not liable for any advice, diagnosis, or treatment provided through our platform, except as required by applicable law.</p>
       </div>
       <div className="pt-4 pl-4 pb-1">
       <FormField

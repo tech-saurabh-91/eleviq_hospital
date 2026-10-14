@@ -34,10 +34,12 @@ import { format } from 'date-fns';
 import { useAppointments } from '@/hooks/useAppointments';
 import { Skeleton } from '@/components/ui/skeleton';
 import { AppointmentStatus } from "@/types/appoiment";
+import { FeatureStatusModal } from "@/components/common/FeatureStatus";
 
 export default function AppointmentsPage() {
   const { appointments, loading, getAllAppointments } = useAppointments();
   const [selectedAppointment, setSelectedAppointment] = useState<any>(null);
+  const [telemedicineModalOpen, setTelemedicineModalOpen] = useState(false);
 
   useEffect(() => {
     getAllAppointments();
@@ -292,7 +294,10 @@ export default function AppointmentsPage() {
 
       {/* Quick Links */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <Card className="hover:border-primary cursor-pointer transition-colors">
+        <Card
+          className="hover:border-primary cursor-pointer transition-colors"
+          onClick={() => setTelemedicineModalOpen(true)}
+        >
           <CardContent className="flex items-center gap-4 p-6">
             <div className="bg-customTeal/10 p-3 rounded-full">
               <VideoIcon className="h-6 w-6 text-customTeal" />
@@ -304,29 +309,33 @@ export default function AppointmentsPage() {
           </CardContent>
         </Card>
 
-        <Card className="hover:border-primary cursor-pointer transition-colors">
-          <CardContent className="flex items-center gap-4 p-6">
-            <div className="bg-customTeal/10 p-3 rounded-full">
-              <Clock className="h-6 w-6 text-customTeal" />
-            </div>
-            <div>
-              <h3 className="font-medium">Appointment History</h3>
-              <p className="text-sm text-gray-500">View past appointments</p>
-            </div>
-          </CardContent>
-        </Card>
+        <Link href="/patient/appointments/calendar">
+          <Card className="hover:border-primary cursor-pointer transition-colors h-full">
+            <CardContent className="flex items-center gap-4 p-6">
+              <div className="bg-customTeal/10 p-3 rounded-full">
+                <Clock className="h-6 w-6 text-customTeal" />
+              </div>
+              <div>
+                <h3 className="font-medium">Appointment History</h3>
+                <p className="text-sm text-gray-500">View past appointments</p>
+              </div>
+            </CardContent>
+          </Card>
+        </Link>
 
-        <Card className="hover:border-primary cursor-pointer transition-colors">
-          <CardContent className="flex items-center gap-4 p-6">
-            <div className="bg-customTeal/10 p-3 rounded-full">
-              <MapPin className="h-6 w-6 text-customTeal" />
-            </div>
-            <div>
-              <h3 className="font-medium">Office Locations</h3>
-              <p className="text-sm text-gray-500">Find nearest clinic</p>
-            </div>
-          </CardContent>
-        </Card>
+        <Link href="/patient/faqs">
+          <Card className="hover:border-primary cursor-pointer transition-colors h-full">
+            <CardContent className="flex items-center gap-4 p-6">
+              <div className="bg-customTeal/10 p-3 rounded-full">
+                <MapPin className="h-6 w-6 text-customTeal" />
+              </div>
+              <div>
+                <h3 className="font-medium">Office Locations</h3>
+                <p className="text-sm text-gray-500">Find nearest clinic</p>
+              </div>
+            </CardContent>
+          </Card>
+        </Link>
       </div>
 
       <Dialog
@@ -486,6 +495,16 @@ export default function AppointmentsPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <FeatureStatusModal
+        open={telemedicineModalOpen}
+        onOpenChange={setTelemedicineModalOpen}
+        type="currently-unavailable"
+        featureName="Video Appointments (Telemedicine)"
+        title="Telemedicine Video Consultations"
+        description="Encrypted video consultations with healthcare providers are temporarily unavailable while the teleconsultation room signaling gateway is being integrated."
+        missingDependency="GET /api/patient/telemedicine/:appointmentId/session"
+      />
     </div>
   );
 }

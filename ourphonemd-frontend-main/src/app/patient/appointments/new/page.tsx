@@ -274,6 +274,12 @@ function NewAppointmentContent() {
       return;
     }
 
+    const todayDate = new Date().toISOString().split("T")[0];
+    if (values.appointmentDate < todayDate) {
+      toast.error("Appointment date cannot be in the past.");
+      return;
+    }
+
     if (!values.startTime || !values.endTime) {
       toast.error("Please select an available time slot.");
       return;
@@ -281,6 +287,16 @@ function NewAppointmentContent() {
 
     if (!values.reason.trim()) {
       toast.error("Please enter the reason for the visit.");
+      return;
+    }
+
+    if (values.reason.trim().length < 5) {
+      toast.error("Visit reason must be at least 5 characters.");
+      return;
+    }
+
+    if (values.reason.trim().length > 500) {
+      toast.error("Visit reason cannot exceed 500 characters.");
       return;
     }
 

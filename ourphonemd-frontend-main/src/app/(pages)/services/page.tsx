@@ -33,8 +33,8 @@ import {
 } from "lucide-react";
 
 // export const metadata = {
-//   title: "Our Services | OurPhoneMD - Modern Telemedicine Solutions",
-//   description: "Explore the range of telemedicine services offered by OurPhoneMD, including ADHD/anxiety appointments, sick child care, and more.",
+//   title: "Our Services | Eleviq Hospital - Modern Telemedicine Solutions",
+//   description: "Explore the range of telemedicine services offered by Eleviq Hospital, including ADHD/anxiety appointments, sick child care, and more.",
 // };
 
 type ServiceCardProps = {
@@ -206,7 +206,7 @@ export default function ServicesPage() {
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.4, duration: 0.6 }}
               >
-                OurPhoneMD provides comprehensive telemedicine services for the entire family, offering convenient healthcare solutions from the comfort of your home.
+                Eleviq Hospital provides comprehensive telemedicine services for the entire family, offering convenient healthcare solutions from the comfort of your home.
               </motion.p>
               <motion.p 
                 className="text-xl text-slate-600 leading-relaxed"
@@ -296,7 +296,7 @@ export default function ServicesPage() {
                 <div className="h-1.5 w-full bg-emerald-500"></div>
                 <div className="relative h-[240px]">
                   <Image
-                    src="https://ext.same-assets.com/54593336/169712448.jpeg"
+                    src="/images/service/mental-health.png"
                     alt="ADHD/Anxiety Appointment"
                     fill
                     className="object-cover"
@@ -402,7 +402,7 @@ export default function ServicesPage() {
                 <div className="h-1.5 w-full bg-emerald-500"></div>
                 <div className="relative h-[240px]">
                   <Image
-                    src="https://ext.same-assets.com/54593336/1300160112.png"
+                    src="/images/Medicalprescription.png"
                     alt="Patient Forms"
                     fill
                     className="object-cover"
@@ -477,7 +477,7 @@ export default function ServicesPage() {
               Additional <span className="text-customTeal">Healthcare Services</span>
             </h2>
             <p className="text-xl text-slate-600">
-              OurPhoneMD offers a comprehensive range of telemedicine services
+              Eleviq Hospital offers a comprehensive range of telemedicine services
             </p>
           </motion.div>
 
@@ -571,7 +571,7 @@ export default function ServicesPage() {
                 Create an Account
               </h3>
               <p className="text-slate-600">
-                Sign up for an OurPhoneMD account, complete your profile, and add family members if needed. Our registration process is quick and secure.
+                Sign up for an Eleviq Hospital account, complete your profile, and add family members if needed. Our registration process is quick and secure.
               </p>
             </div>
 
@@ -618,7 +618,7 @@ export default function ServicesPage() {
                 Insurance & Payment Options
               </h2>
               <p className="text-lg text-slate-600">
-                OurPhoneMD offers multiple payment options to make healthcare affordable and accessible. We work with various insurance providers and also offer competitive self-pay rates.
+                Eleviq Hospital offers multiple payment options to make healthcare affordable and accessible. We work with various insurance providers and also offer competitive self-pay rates.
               </p>
 
               <div className="space-y-4 mt-8">
@@ -712,7 +712,7 @@ export default function ServicesPage() {
               viewport={{ once: true }}
               transition={{ delay: 0.3, duration: 0.6 }}
             >
-              Join thousands of Kentucky families who trust OurPhoneMD for their healthcare needs.
+              Join thousands of New Delhi families who trust Eleviq Hospital for their healthcare needs.
             </motion.p>
             <motion.div 
               className="pt-6 flex flex-wrap justify-center gap-4"

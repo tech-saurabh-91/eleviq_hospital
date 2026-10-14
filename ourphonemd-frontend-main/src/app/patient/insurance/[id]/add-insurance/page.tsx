@@ -5,6 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import {
   ArrowLeft,
   CreditCard,
+  FileCheck,
   FileText,
   Info,
   Save,
@@ -45,6 +46,7 @@ import {
   AlertDescription,
   AlertTitle,
 } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
 
 import { toast } from "sonner";
 
@@ -79,6 +81,7 @@ interface FamilyMember {
 interface InsuranceFile {
   file: File | null;
   preview: string;
+  name?: string;
 }
 
 /* -------------------------------------------------------------------------- */
@@ -87,10 +90,17 @@ interface InsuranceFile {
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024;
 
-const ALLOWED_FILE_TYPES = [
+const ALLOWED_CARD_TYPES = [
   "image/jpeg",
   "image/png",
   "image/gif",
+];
+
+const ALLOWED_DOC_TYPES = [
+  "image/jpeg",
+  "image/png",
+  "image/gif",
+  "application/pdf",
 ];
 
 const insuranceProviders = [
@@ -107,13 +117,19 @@ const insuranceProviders = [
   "National Insurance Company",
   "United India Insurance",
   "Oriental Insurance",
+  "Reliance General Insurance",
+  "SBI General Insurance",
   "Other",
 ];
 
 const insuranceTypes = [
   {
-    value: "Government",
-    label: "Government Health Scheme",
+    value: "Private Health Insurance",
+    label: "Private Health Insurance",
+  },
+  {
+    value: "Employer-Sponsored / Group",
+    label: "Employer-Sponsored / Group Insurance",
   },
   {
     value: "Ayushman Bharat PM-JAY",
@@ -121,15 +137,19 @@ const insuranceTypes = [
   },
   {
     value: "CGHS",
-    label: "CGHS",
+    label: "CGHS (Central Government Health Scheme)",
   },
   {
     value: "ESIC",
-    label: "ESIC",
+    label: "ESIC (Employees' State Insurance)",
+  },
+  {
+    value: "Government Health Scheme",
+    label: "Other State / Government Scheme",
   },
   {
     value: "Commercial",
-    label: "Private / Commercial Insurance",
+    label: "Commercial Insurance",
   },
   {
     value: "Other",
@@ -137,40 +157,57 @@ const insuranceTypes = [
   },
 ];
 
+const tpaProviders = [
+  "Medi Assist Insurance TPA",
+  "Vidal Health TPA",
+  "MDIndia Health Insurance TPA",
+  "Paramount Health Services & Insurance TPA",
+  "Heritage Health Insurance TPA",
+  "Raksha Health Insurance TPA",
+  "Family Health Plan Insurance TPA (FHPL)",
+  "Dedicated Healthcare Services TPA",
+  "None / Direct Settlement",
+  "Other",
+];
+
+const policyTypes = [
+  { value: "Individual", label: "Individual" },
+  { value: "Family Floater", label: "Family Floater" },
+  { value: "Group/Employer", label: "Group / Employer" },
+  { value: "Government Scheme", label: "Government Scheme" },
+];
+
 const coverageTypes = [
-  "Medical",
   "Hospitalization",
-  "Maternity",
+  "Comprehensive Medical",
   "Critical Illness",
+  "Maternity & Newborn",
+  "Day Care Treatments",
   "Dental",
   "Vision",
   "Other",
 ];
 
-const relationshipOptions = [
-  {
-    value: "Self",
-    label: "Self",
-  },
-  {
-    value: "Spouse",
-    label: "Spouse",
-  },
-  {
-    value: "Child",
-    label: "Child",
-  },
-  {
-    value: "Parent",
-    label: "Parent",
-  },
-  {
-    value: "Other",
-    label: "Other",
-  },
+const roomRentLimits = [
+  "No Capping / Standard Room",
+  "1% of Sum Insured per day",
+  "2% of Sum Insured per day",
+  "Single Private AC Room",
+  "Twin Sharing / Semi-Private",
+  "General Ward",
+  "Other / Custom Limit",
 ];
+
+const relationshipOptions = [
+  { value: "Self", label: "Self" },
+  { value: "Spouse", label: "Spouse" },
+  { value: "Child", label: "Child" },
+  { value: "Parent", label: "Parent" },
+  { value: "Other", label: "Other" },
+];
+
 /* -------------------------------------------------------------------------- */
-/* VALIDATION                                                                 */
+/* VALIDATION SCHEMA                                                          */
 /* -------------------------------------------------------------------------- */
 
 const insuranceFormSchema = z
@@ -185,10 +222,19 @@ const insuranceFormSchema = z
 
     customProvider: z.string().optional(),
 
+    tpa: z.string().optional(),
+    customTpa: z.string().optional(),
+
+    planName: z.string().optional(),
+
+    policyType: z
+      .string()
+      .min(1, "Policy type is required"),
+
     insuranceId: z
       .string()
       .trim()
-      .min(1, "Insurance member ID is required")
+      .min(1, "Insurance member ID / card number is required")
       .max(100, "Insurance member ID is too long"),
 
     policyNumber: z
@@ -197,17 +243,11 @@ const insuranceFormSchema = z
       .min(1, "Policy number is required")
       .max(100, "Policy number is too long"),
 
-    groupNumber: z
+    policyHolderName: z
       .string()
       .trim()
-      .max(100, "Group number is too long")
-      .optional(),
-
-    ediPayer: z
-      .string()
-      .trim()
-      .max(100, "EDI payer is too long")
-      .optional(),
+      .min(1, "Policyholder name is required")
+      .max(150, "Policyholder name is too long"),
 
     coverageType: z
       .string()
@@ -215,7 +255,16 @@ const insuranceFormSchema = z
 
     effectiveDate: z
       .string()
-      .min(1, "Effective date is required"),
+      .min(1, "Policy start date is required"),
+
+    expiryDate: z.string().optional(),
+
+    sumInsured: z.string().optional(),
+    remainingSumInsured: z.string().optional(),
+    roomRentLimit: z.string().optional(),
+    copay: z.string().optional(),
+    deductible: z.string().optional(),
+    coverageRestrictions: z.string().optional(),
 
     relationship: z
       .string()
@@ -223,33 +272,22 @@ const insuranceFormSchema = z
 
     isPrimary: z.boolean(),
 
-    subscriberName: z
-      .string()
-      .trim()
-      .max(150, "Subscriber name is too long")
-      .optional(),
+    // Group / Corporate Insurance
+    employerName: z.string().optional(),
+    employeeId: z.string().optional(),
+    groupNumber: z.string().optional(),
 
-    subscriberCopay: z
-      .string()
-      .trim()
-      .max(50, "Subscriber copay is too long")
-      .optional(),
+    // Government Scheme
+    schemeName: z.string().optional(),
+    beneficiaryId: z.string().optional(),
 
-    subscriberSsn: z
-      .string()
-      .trim()
-      .max(20, "Subscriber SSN is too long")
-      .optional(),
-
-    subscriberDateOfBirth: z
-      .string()
-      .optional(),
-
-    subscriberAddress: z
-      .string()
-      .trim()
-      .max(300, "Subscriber address is too long")
-      .optional(),
+    // Legacy US fields
+    ediPayer: z.string().optional(),
+    subscriberName: z.string().optional(),
+    subscriberCopay: z.string().optional(),
+    subscriberSsn: z.string().optional(),
+    subscriberDateOfBirth: z.string().optional(),
+    subscriberAddress: z.string().optional(),
   })
   .superRefine((data, ctx) => {
     if (
@@ -263,11 +301,16 @@ const insuranceFormSchema = z
       });
     }
 
-    if (data.effectiveDate) {
-      const selectedDate = new Date(
-        `${data.effectiveDate}T00:00:00`
-      );
+    if (data.tpa === "Other" && !data.customTpa?.trim()) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["customTpa"],
+        message: "TPA name is required",
+      });
+    }
 
+    if (data.effectiveDate) {
+      const selectedDate = new Date(`${data.effectiveDate}T00:00:00`);
       const today = new Date();
       today.setHours(0, 0, 0, 0);
 
@@ -275,64 +318,38 @@ const insuranceFormSchema = z
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
           path: ["effectiveDate"],
-          message:
-            "Insurance effective date cannot be in the future",
+          message: "Insurance effective date cannot be in the future",
         });
       }
     }
 
-    /*
-     * Backend requires subscriber information for:
-     * - commercial
-     * - non-medicaid
-     *
-     * We mirror that rule here so the user gets the error
-     * before making the API request.
-     */
-    const normalizedType = data.insuranceType.toLowerCase();
+    if (data.expiryDate && data.effectiveDate) {
+      const start = new Date(`${data.effectiveDate}T00:00:00`);
+      const end = new Date(`${data.expiryDate}T00:00:00`);
 
-    const requiresSubscriber =
-      normalizedType.includes("commercial") ||
-      normalizedType.includes("non-medicaid");
-
-    if (requiresSubscriber) {
-      if (!data.subscriberName?.trim()) {
+      if (end < start) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
-          path: ["subscriberName"],
-          message: "Subscriber name is required",
+          path: ["expiryDate"],
+          message: "Policy expiry date cannot be earlier than start date",
         });
       }
+    }
 
-      if (!data.subscriberSsn?.trim()) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          path: ["subscriberSsn"],
-          message: "Subscriber SSN is required",
-        });
-      }
+    const isGroup =
+      data.insuranceType === "Employer-Sponsored / Group" ||
+      data.policyType === "Group/Employer";
 
-      if (!data.subscriberDateOfBirth) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          path: ["subscriberDateOfBirth"],
-          message: "Subscriber date of birth is required",
-        });
-      }
-
-      if (!data.subscriberAddress?.trim()) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          path: ["subscriberAddress"],
-          message: "Subscriber address is required",
-        });
-      }
+    if (isGroup && !data.employerName?.trim()) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["employerName"],
+        message: "Employer name is required for corporate/group insurance",
+      });
     }
   });
 
-type InsuranceFormValues = z.infer<
-  typeof insuranceFormSchema
->;
+type InsuranceFormValues = z.infer<typeof insuranceFormSchema>;
 
 /* -------------------------------------------------------------------------- */
 /* HELPERS                                                                    */
@@ -350,20 +367,24 @@ const getFullName = (member: FamilyMember | null) => {
     .join(" ");
 };
 
-const validateInsuranceFile = (file: File) => {
-  if (!ALLOWED_FILE_TYPES.includes(file.type)) {
-    return "Only JPG, PNG, and GIF images are allowed.";
+const validateFile = (file: File, isDocument = false) => {
+  const allowed = isDocument ? ALLOWED_DOC_TYPES : ALLOWED_CARD_TYPES;
+
+  if (!allowed.includes(file.type)) {
+    return isDocument
+      ? "Only JPG, PNG, GIF images or PDF documents are allowed."
+      : "Only JPG, PNG, and GIF images are allowed for insurance cards.";
   }
 
   if (file.size > MAX_FILE_SIZE) {
-    return "Insurance card image must be 5 MB or smaller.";
+    return "File must be 5 MB or smaller.";
   }
 
   return null;
 };
 
 /* -------------------------------------------------------------------------- */
-/* PAGE                                                                       */
+/* PAGE COMPONENT                                                             */
 /* -------------------------------------------------------------------------- */
 
 export default function AddInsurancePage() {
@@ -372,42 +393,56 @@ export default function AddInsurancePage() {
 
   const familyMemberId = String(params.id || "");
 
-  const [member, setMember] =
-    useState<FamilyMember | null>(null);
+  const [member, setMember] = useState<FamilyMember | null>(null);
+  const [loadingMember, setLoadingMember] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const [loadingMember, setLoadingMember] =
-    useState(true);
+  const [frontCard, setFrontCard] = useState<InsuranceFile>({
+    file: null,
+    preview: "",
+  });
 
-  const [isSubmitting, setIsSubmitting] =
-    useState(false);
+  const [backCard, setBackCard] = useState<InsuranceFile>({
+    file: null,
+    preview: "",
+  });
 
-  const [frontCard, setFrontCard] =
-    useState<InsuranceFile>({
-      file: null,
-      preview: "",
-    });
-
-  const [backCard, setBackCard] =
-    useState<InsuranceFile>({
-      file: null,
-      preview: "",
-    });
+  const [policyDoc, setPolicyDoc] = useState<InsuranceFile>({
+    file: null,
+    preview: "",
+    name: "",
+  });
 
   const form = useForm<InsuranceFormValues>({
     resolver: zodResolver(insuranceFormSchema),
-
     defaultValues: {
-      insuranceType: "",
+      insuranceType: "Private Health Insurance",
       insuranceProvider: "",
       customProvider: "",
+      tpa: "",
+      customTpa: "",
+      planName: "",
+      policyType: "Individual",
       insuranceId: "",
       policyNumber: "",
-      groupNumber: "",
-      ediPayer: "",
-      coverageType: "",
+      policyHolderName: "",
+      coverageType: "Hospitalization",
       effectiveDate: "",
-      relationship: "self",
+      expiryDate: "",
+      sumInsured: "",
+      remainingSumInsured: "",
+      roomRentLimit: "",
+      copay: "",
+      deductible: "",
+      coverageRestrictions: "",
+      relationship: "Self",
       isPrimary: false,
+      employerName: "",
+      employeeId: "",
+      groupNumber: "",
+      schemeName: "",
+      beneficiaryId: "",
+      ediPayer: "",
       subscriberName: "",
       subscriberCopay: "",
       subscriberSsn: "",
@@ -417,19 +452,26 @@ export default function AddInsurancePage() {
   });
 
   const insuranceType = form.watch("insuranceType");
-  const insuranceProvider = form.watch(
-    "insuranceProvider"
-  );
+  const insuranceProvider = form.watch("insuranceProvider");
+  const selectedTpa = form.watch("tpa");
+  const policyType = form.watch("policyType");
 
-  const requiresSubscriber = useMemo(() => {
-    const normalizedType =
-      insuranceType?.toLowerCase() || "";
-
+  const isGroupInsurance = useMemo(() => {
     return (
-      normalizedType.includes("commercial") ||
-      normalizedType.includes("non-medicaid")
+      insuranceType === "Employer-Sponsored / Group" ||
+      policyType === "Group/Employer"
     );
-  }, [insuranceType]);
+  }, [insuranceType, policyType]);
+
+  const isGovtScheme = useMemo(() => {
+    return (
+      insuranceType === "Ayushman Bharat PM-JAY" ||
+      insuranceType === "CGHS" ||
+      insuranceType === "ESIC" ||
+      insuranceType === "Government Health Scheme" ||
+      policyType === "Government Scheme"
+    );
+  }, [insuranceType, policyType]);
 
   /* ------------------------------------------------------------------------ */
   /* FETCH FAMILY MEMBER                                                      */
@@ -441,32 +483,26 @@ export default function AddInsurancePage() {
     const fetchFamilyMember = async () => {
       try {
         setLoadingMember(true);
-
         const response = await api.get(
-          PATIENT_FAMILY_API.GET_SINGLE(
-            familyMemberId
-          )
+          PATIENT_FAMILY_API.GET_SINGLE(familyMemberId)
         );
 
-        const data =
-          response.data?.data ??
-          response.data;
+        const data = response.data?.data ?? response.data;
 
         if (isMounted) {
           setMember(data);
+          const name = getFullName(data);
+          if (name) {
+            form.setValue("policyHolderName", name);
+            form.setValue("subscriberName", name);
+          }
         }
       } catch (error: any) {
-        console.error(
-          "Failed to fetch family member:",
-          error
-        );
-
+        console.error("Failed to fetch family member:", error);
         if (isMounted) {
           toast.error(
-            error?.response?.data?.message ||
-              "Failed to load family member."
+            error?.response?.data?.message || "Failed to load family member."
           );
-
           router.push("/patient/family-member");
         }
       } finally {
@@ -483,73 +519,16 @@ export default function AddInsurancePage() {
     return () => {
       isMounted = false;
     };
-  }, [familyMemberId, router]);
-
-  /* ------------------------------------------------------------------------ */
-  /* AUTO-FILL SUBSCRIBER FOR SELF                                            */
-  /* ------------------------------------------------------------------------ */
-
-  useEffect(() => {
-    if (!member) return;
-
-    const relationship =
-      form.getValues("relationship");
-
-    if (relationship !== "self") return;
-
-    const currentSubscriberName =
-      form.getValues("subscriberName");
-
-    if (!currentSubscriberName) {
-      form.setValue(
-        "subscriberName",
-        getFullName(member)
-      );
-    }
-
-    if (
-      member.dateOfBirth &&
-      !form.getValues("subscriberDateOfBirth")
-    ) {
-      form.setValue(
-        "subscriberDateOfBirth",
-        member.dateOfBirth
-      );
-    }
-
-    if (
-      member.address &&
-      !form.getValues("subscriberAddress")
-    ) {
-      const address = [
-        member.address.street,
-        member.address.city,
-        member.address.state,
-        member.address.zipCode,
-      ]
-        .filter(Boolean)
-        .join(", ");
-
-      form.setValue(
-        "subscriberAddress",
-        address
-      );
-    }
-  }, [member, form]);
+  }, [familyMemberId, router, form]);
 
   /* ------------------------------------------------------------------------ */
   /* FILE HANDLING                                                            */
   /* ------------------------------------------------------------------------ */
 
-  const handleFileChange = (
-    file: File | null,
-    side: "front" | "back"
-  ) => {
+  const handleCardChange = (file: File | null, side: "front" | "back") => {
     if (!file) return;
 
-    const validationError =
-      validateInsuranceFile(file);
-
+    const validationError = validateFile(file, false);
     if (validationError) {
       toast.error(validationError);
       return;
@@ -558,80 +537,59 @@ export default function AddInsurancePage() {
     const preview = URL.createObjectURL(file);
 
     if (side === "front") {
-      if (frontCard.preview) {
-        URL.revokeObjectURL(frontCard.preview);
-      }
-
-      setFrontCard({
-        file,
-        preview,
-      });
+      if (frontCard.preview) URL.revokeObjectURL(frontCard.preview);
+      setFrontCard({ file, preview });
     } else {
-      if (backCard.preview) {
-        URL.revokeObjectURL(backCard.preview);
-      }
-
-      setBackCard({
-        file,
-        preview,
-      });
+      if (backCard.preview) URL.revokeObjectURL(backCard.preview);
+      setBackCard({ file, preview });
     }
   };
 
-  const removeFile = (
-    side: "front" | "back"
-  ) => {
-    if (side === "front") {
-      if (frontCard.preview) {
-        URL.revokeObjectURL(frontCard.preview);
-      }
+  const handleDocChange = (file: File | null) => {
+    if (!file) return;
 
-      setFrontCard({
-        file: null,
-        preview: "",
-      });
-    } else {
-      if (backCard.preview) {
-        URL.revokeObjectURL(backCard.preview);
-      }
-
-      setBackCard({
-        file: null,
-        preview: "",
-      });
+    const validationError = validateFile(file, true);
+    if (validationError) {
+      toast.error(validationError);
+      return;
     }
+
+    const preview = file.type.startsWith("image/")
+      ? URL.createObjectURL(file)
+      : "";
+
+    if (policyDoc.preview) URL.revokeObjectURL(policyDoc.preview);
+    setPolicyDoc({ file, preview, name: file.name });
   };
 
-  /* ------------------------------------------------------------------------ */
-  /* CLEANUP PREVIEWS                                                         */
-  /* ------------------------------------------------------------------------ */
+  const removeFile = (type: "front" | "back" | "doc") => {
+    if (type === "front") {
+      if (frontCard.preview) URL.revokeObjectURL(frontCard.preview);
+      setFrontCard({ file: null, preview: "" });
+    } else if (type === "back") {
+      if (backCard.preview) URL.revokeObjectURL(backCard.preview);
+      setBackCard({ file: null, preview: "" });
+    } else {
+      if (policyDoc.preview) URL.revokeObjectURL(policyDoc.preview);
+      setPolicyDoc({ file: null, preview: "", name: "" });
+    }
+  };
 
   useEffect(() => {
     return () => {
-      if (frontCard.preview) {
-        URL.revokeObjectURL(frontCard.preview);
-      }
-
-      if (backCard.preview) {
-        URL.revokeObjectURL(backCard.preview);
-      }
+      if (frontCard.preview) URL.revokeObjectURL(frontCard.preview);
+      if (backCard.preview) URL.revokeObjectURL(backCard.preview);
+      if (policyDoc.preview) URL.revokeObjectURL(policyDoc.preview);
     };
-  }, []);
+  }, [frontCard.preview, backCard.preview, policyDoc.preview]);
 
   /* ------------------------------------------------------------------------ */
   /* SUBMIT                                                                    */
   /* ------------------------------------------------------------------------ */
 
-  const onSubmit = async (
-    values: InsuranceFormValues
-  ) => {
+  const onSubmit = async (values: InsuranceFormValues) => {
     if (!familyMemberId) {
       toast.error("Family member ID is missing.");
-      return;
-    }
-
-    if (!member) {
-      toast.error("Family member information is unavailable.");
       return;
     }
 
@@ -645,170 +603,100 @@ export default function AddInsurancePage() {
           ? values.customProvider?.trim()
           : values.insuranceProvider;
 
-      data.append(
-        "insuranceType",
-        values.insuranceType
-      );
+      const tpaName =
+        values.tpa === "Other" ? values.customTpa?.trim() : values.tpa;
 
-      data.append(
-        "insuranceProvider",
-        providerName || ""
-      );
+      data.append("insuranceType", values.insuranceType);
+      data.append("insuranceProvider", providerName || "");
+      data.append("insuranceId", values.insuranceId.trim());
+      data.append("policyNumber", values.policyNumber.trim());
+      data.append("coverageType", values.coverageType);
+      data.append("effectiveDate", values.effectiveDate);
+      data.append("relationship", values.relationship);
+      data.append("familyMemberId", familyMemberId);
+      data.append("isPrimary", String(values.isPrimary));
 
-      data.append(
-        "insuranceId",
-        values.insuranceId.trim()
-      );
+      // Indian HMS Fields
+      if (tpaName?.trim()) data.append("tpa", tpaName.trim());
+      if (values.planName?.trim()) data.append("planName", values.planName.trim());
+      if (values.policyType) data.append("policyType", values.policyType);
+      if (values.policyHolderName?.trim()) {
+        data.append("policyHolderName", values.policyHolderName.trim());
+        data.append("subscriberName", values.policyHolderName.trim());
+      }
+      if (values.expiryDate) data.append("expiryDate", values.expiryDate);
+      if (values.sumInsured?.trim()) data.append("sumInsured", values.sumInsured.trim());
+      if (values.remainingSumInsured?.trim()) {
+        data.append("remainingSumInsured", values.remainingSumInsured.trim());
+      }
+      if (values.roomRentLimit?.trim()) {
+        data.append("roomRentLimit", values.roomRentLimit.trim());
+      }
+      if (values.copay?.trim()) {
+        data.append("copay", values.copay.trim());
+        data.append("subscriberCopay", values.copay.trim());
+      }
+      if (values.deductible?.trim()) {
+        data.append("deductible", values.deductible.trim());
+      }
+      if (values.coverageRestrictions?.trim()) {
+        data.append("coverageRestrictions", values.coverageRestrictions.trim());
+      }
 
-      data.append(
-        "policyNumber",
-        values.policyNumber.trim()
-      );
-
+      // Group fields
+      if (values.employerName?.trim()) {
+        data.append("employerName", values.employerName.trim());
+      }
+      if (values.employeeId?.trim()) {
+        data.append("employeeId", values.employeeId.trim());
+      }
       if (values.groupNumber?.trim()) {
-        data.append(
-          "groupNumber",
-          values.groupNumber.trim()
-        );
+        data.append("groupNumber", values.groupNumber.trim());
       }
 
-      if (values.ediPayer?.trim()) {
-        data.append(
-          "ediPayer",
-          values.ediPayer.trim()
-        );
+      // Government scheme fields
+      if (values.schemeName?.trim() || isGovtScheme) {
+        data.append("schemeName", values.schemeName?.trim() || values.insuranceType);
+      }
+      if (values.beneficiaryId?.trim()) {
+        data.append("beneficiaryId", values.beneficiaryId.trim());
       }
 
-      data.append(
-        "coverageType",
-        values.coverageType
-      );
+      // Files
+      if (frontCard.file) data.append("frontCardImage", frontCard.file);
+      if (backCard.file) data.append("backCardImage", backCard.file);
+      if (policyDoc.file) data.append("policyDocument", policyDoc.file);
 
-      data.append(
-        "effectiveDate",
-        values.effectiveDate
-      );
-
-      data.append(
-        "relationship",
-        values.relationship
-      );
-
-      data.append(
-        "familyMemberId",
-        familyMemberId
-      );
-
-      data.append(
-        "isPrimary",
-        String(values.isPrimary)
-      );
-
-      if (values.subscriberName?.trim()) {
-        data.append(
-          "subscriberName",
-          values.subscriberName.trim()
-        );
-      }
-
-      if (values.subscriberCopay?.trim()) {
-        data.append(
-          "subscriberCopay",
-          values.subscriberCopay.trim()
-        );
-      }
-
-      if (values.subscriberSsn?.trim()) {
-        data.append(
-          "subscriberSsn",
-          values.subscriberSsn.trim()
-        );
-      }
-
-      if (values.subscriberDateOfBirth) {
-        data.append(
-          "subscriberDateOfBirth",
-          values.subscriberDateOfBirth
-        );
-      }
-
-      if (values.subscriberAddress?.trim()) {
-        data.append(
-          "subscriberAddress",
-          values.subscriberAddress.trim()
-        );
-      }
-
-      if (frontCard.file) {
-        data.append(
-          "frontCardImage",
-          frontCard.file
-        );
-      }
-
-      if (backCard.file) {
-        data.append(
-          "backCardImage",
-          backCard.file
-        );
-      }
-
-      const response = await api.post(
-        PATIENT_INSURANCE_API.CREATE,
-        data
-      );
+      const response = await api.post(PATIENT_INSURANCE_API.CREATE, data);
 
       toast.success(
-        response.data?.message ||
-          "Insurance added successfully."
+        response.data?.message || "Insurance information registered successfully."
       );
 
-      router.push(
-        `/patient/family-member/${familyMemberId}`
-      );
+      router.push(`/patient/family-member/${familyMemberId}`);
     } catch (error: any) {
-      console.error(
-        "Insurance creation failed:",
-        error
-      );
-
+      console.error("Insurance creation failed:", error);
       const message =
         error?.response?.data?.message ||
-        error?.response?.data?.errors?.[0]
-          ?.message ||
+        error?.response?.data?.errors?.[0]?.message ||
         "Failed to add insurance information.";
-
       toast.error(message);
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  /* ------------------------------------------------------------------------ */
-  /* LOADING                                                                   */
-  /* ------------------------------------------------------------------------ */
-
   if (loadingMember) {
     return (
       <div className="max-w-5xl mx-auto px-4 py-8">
         <div className="flex items-center justify-center min-h-[300px]">
-          <p className="text-gray-500">
-            Loading family member...
-          </p>
+          <p className="text-gray-500">Loading family member...</p>
         </div>
       </div>
     );
   }
 
-  if (!member) {
-    return null;
-  }
-
-  const memberName = getFullName(member);
-
-  /* ------------------------------------------------------------------------ */
-  /* UI                                                                        */
-  /* ------------------------------------------------------------------------ */
+  const memberName = getFullName(member) || "Family Member";
 
   return (
     <div className="max-w-5xl mx-auto py-3 px-4">
@@ -833,19 +721,14 @@ export default function AddInsurancePage() {
         </p>
       </div>
 
-      {/* Information */}
+      {/* Verification Notice */}
       <Alert className="mb-6 bg-blue-50 border-blue-200">
         <Info className="h-4 w-4 text-blue-500" />
-
         <AlertTitle className="text-blue-700">
-          Why add insurance information?
+          Indian HMS Cashless & Reimbursement Workflow
         </AlertTitle>
-
         <AlertDescription className="text-blue-600">
-          Adding insurance information helps
-          streamline your family member&apos;s
-          healthcare experience, enabling faster
-          check-ins and accurate billing.
+          Registered insurance details are submitted with a <strong>Pending</strong> verification status. Our hospital TPA / billing desk will verify policy limits and pre-authorization before admission or cashless discharge.
         </AlertDescription>
       </Alert>
 
@@ -856,13 +739,10 @@ export default function AddInsurancePage() {
               <CardTitle className="text-customTeal">
                 Insurance Details
               </CardTitle>
-
               <CardDescription>
-                Enter your family member&apos;s
-                insurance information
+                Enter {memberName}&apos;s policy, insurer, and coverage details
               </CardDescription>
             </div>
-
             <div className="bg-customTeal/20 p-3 rounded-full shrink-0">
               <CreditCard className="h-6 w-6 text-customTeal" />
             </div>
@@ -875,10 +755,9 @@ export default function AddInsurancePage() {
               onSubmit={form.handleSubmit(onSubmit)}
               className="space-y-6"
             >
-              {/* ---------------------------------------------------------------- */}
-              {/* BASIC INSURANCE INFORMATION                                     */}
-              {/* ---------------------------------------------------------------- */}
-
+              {/* ------------------------------------------------------------ */}
+              {/* SECTION 1: PROVIDER & POLICY DETAILS                          */}
+              {/* ------------------------------------------------------------ */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {/* Insurance Type */}
                 <FormField
@@ -886,49 +765,78 @@ export default function AddInsurancePage() {
                   name="insuranceType"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>
-                        Insurance Type*
-                      </FormLabel>
-
+                      <FormLabel>Insurance Type / Category*</FormLabel>
                       <Select
                         value={field.value}
-                        onValueChange={field.onChange}
+                        onValueChange={(val) => {
+                          field.onChange(val);
+                          if (val === "Employer-Sponsored / Group") {
+                            form.setValue("policyType", "Group/Employer");
+                          } else if (
+                            val.includes("PM-JAY") ||
+                            val === "CGHS" ||
+                            val === "ESIC" ||
+                            val.includes("Government")
+                          ) {
+                            form.setValue("policyType", "Government Scheme");
+                            form.setValue("schemeName", val);
+                          }
+                        }}
                       >
                         <FormControl>
                           <SelectTrigger>
                             <SelectValue placeholder="Select insurance type" />
                           </SelectTrigger>
                         </FormControl>
-
                         <SelectContent>
-                          {insuranceTypes.map(
-                            (type) => (
-                              <SelectItem
-                                key={type.value}
-                                value={type.value}
-                              >
-                                {type.label}
-                              </SelectItem>
-                            )
-                          )}
+                          {insuranceTypes.map((type) => (
+                            <SelectItem key={type.value} value={type.value}>
+                              {type.label}
+                            </SelectItem>
+                          ))}
                         </SelectContent>
                       </Select>
-
                       <FormMessage />
                     </FormItem>
                   )}
                 />
 
-                {/* Provider */}
+                {/* Policy Type */}
+                <FormField
+                  control={form.control}
+                  name="policyType"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Policy Type*</FormLabel>
+                      <Select
+                        value={field.value}
+                        onValueChange={field.onChange}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select policy type" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {policyTypes.map((pt) => (
+                            <SelectItem key={pt.value} value={pt.value}>
+                              {pt.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                {/* Insurance Provider */}
                 <FormField
                   control={form.control}
                   name="insuranceProvider"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>
-                        Insurance Provider*
-                      </FormLabel>
-
+                      <FormLabel>Insurance Company / Insurer*</FormLabel>
                       <Select
                         value={field.value}
                         onValueChange={field.onChange}
@@ -938,73 +846,101 @@ export default function AddInsurancePage() {
                             <SelectValue placeholder="Select insurance provider" />
                           </SelectTrigger>
                         </FormControl>
-
                         <SelectContent>
-                          {insuranceProviders.map(
-                            (provider) => (
-                              <SelectItem
-                                key={provider}
-                                value={provider}
-                              >
-                                {provider}
-                              </SelectItem>
-                            )
-                          )}
+                          {insuranceProviders.map((provider) => (
+                            <SelectItem key={provider} value={provider}>
+                              {provider}
+                            </SelectItem>
+                          ))}
                         </SelectContent>
                       </Select>
-
                       <FormMessage />
                     </FormItem>
                   )}
                 />
 
-                {/* Custom Provider */}
-                {insuranceProvider ===
-                  "Other" && (
+                {/* Custom Provider if Other */}
+                {insuranceProvider === "Other" && (
                   <FormField
                     control={form.control}
                     name="customProvider"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>
-                          Provider Name*
-                        </FormLabel>
-
+                        <FormLabel>Insurer Name*</FormLabel>
                         <FormControl>
                           <Input
-                            placeholder="Enter insurance provider name"
+                            placeholder="Enter insurer name"
                             {...field}
                           />
                         </FormControl>
-
                         <FormMessage />
                       </FormItem>
                     )}
                   />
                 )}
 
-                {/* Insurance Member ID */}
+                {/* Third-Party Administrator (TPA) */}
                 <FormField
                   control={form.control}
-                  name="insuranceId"
+                  name="tpa"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>
-                        Insurance Member ID*
-                      </FormLabel>
+                      <FormLabel>Third-Party Administrator (TPA)</FormLabel>
+                      <Select
+                        value={field.value}
+                        onValueChange={field.onChange}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select TPA (if applicable)" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {tpaProviders.map((tpa) => (
+                            <SelectItem key={tpa} value={tpa}>
+                              {tpa}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormDescription>
+                        Applicable for cashless claims processing.
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
 
+                {/* Custom TPA */}
+                {selectedTpa === "Other" && (
+                  <FormField
+                    control={form.control}
+                    name="customTpa"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>TPA Name*</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Enter TPA name" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                )}
+
+                {/* Plan / Product Name */}
+                <FormField
+                  control={form.control}
+                  name="planName"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Plan / Product Name</FormLabel>
                       <FormControl>
                         <Input
-                          placeholder="Enter member ID"
+                          placeholder="e.g. Optima Secure, Star Comprehensive"
                           {...field}
                         />
                       </FormControl>
-
-                      <FormDescription>
-                        Member ID shown on the insurance
-                        card.
-                      </FormDescription>
-
                       <FormMessage />
                     </FormItem>
                   )}
@@ -1016,130 +952,52 @@ export default function AddInsurancePage() {
                   name="policyNumber"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>
-                        Policy Number*
-                      </FormLabel>
-
+                      <FormLabel>Policy Number*</FormLabel>
                       <FormControl>
                         <Input
                           placeholder="Enter policy number"
                           {...field}
                         />
                       </FormControl>
-
                       <FormMessage />
                     </FormItem>
                   )}
                 />
 
-                {/* Group Number */}
+                {/* Member ID / Health Card Number */}
                 <FormField
                   control={form.control}
-                  name="groupNumber"
+                  name="insuranceId"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>
-                        Group Number
-                      </FormLabel>
-
+                      <FormLabel>Member ID / Health Card Number*</FormLabel>
                       <FormControl>
                         <Input
-                          placeholder="Enter group number"
+                          placeholder="Enter member / card ID"
                           {...field}
                         />
                       </FormControl>
-
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                {/* EDI Payer */}
-                <FormField
-                  control={form.control}
-                  name="ediPayer"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>
-                        EDI Payer
-                      </FormLabel>
-
-                      <FormControl>
-                        <Input
-                          placeholder="Enter EDI payer"
-                          {...field}
-                        />
-                      </FormControl>
-
                       <FormDescription>
-                        Optional payer identifier.
+                        Member or UHID shown on your insurance card.
                       </FormDescription>
-
                       <FormMessage />
                     </FormItem>
                   )}
                 />
 
-                {/* Coverage Type */}
+                {/* Policyholder Name */}
                 <FormField
                   control={form.control}
-                  name="coverageType"
+                  name="policyHolderName"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>
-                        Coverage Type*
-                      </FormLabel>
-
-                      <Select
-                        value={field.value}
-                        onValueChange={field.onChange}
-                      >
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select coverage type" />
-                          </SelectTrigger>
-                        </FormControl>
-
-                        <SelectContent>
-                          {coverageTypes.map(
-                            (coverage) => (
-                              <SelectItem
-                                key={coverage}
-                                value={coverage}
-                              >
-                                {coverage}
-                              </SelectItem>
-                            )
-                          )}
-                        </SelectContent>
-                      </Select>
-
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                {/* Effective Date */}
-                <FormField
-                  control={form.control}
-                  name="effectiveDate"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>
-                        Effective Date*
-                      </FormLabel>
-
+                      <FormLabel>Policyholder / Proposer Name*</FormLabel>
                       <FormControl>
                         <Input
-                          type="date"
+                          placeholder="Name of primary insured"
                           {...field}
                         />
                       </FormControl>
-
-                      <FormDescription>
-                        Cannot be a future date.
-                      </FormDescription>
-
                       <FormMessage />
                     </FormItem>
                   )}
@@ -1151,43 +1009,13 @@ export default function AddInsurancePage() {
                   name="relationship"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>
-                        Relationship to Subscriber*
-                      </FormLabel>
-
+                      <FormLabel>Relationship to Policyholder*</FormLabel>
                       <Select
                         value={field.value}
-                        onValueChange={(value) => {
-                          field.onChange(value);
-
-                          if (
-                            value === "self" &&
-                            member
-                          ) {
-                            form.setValue(
-                              "subscriberName",
-                              memberName
-                            );
-
-                            form.setValue(
-                              "subscriberDateOfBirth",
-                              member.dateOfBirth
-                            );
-
-                            const address = [
-                              member.address
-                                ?.street,
-                              member.address?.city,
-                              member.address?.state,
-                              member.address?.zipCode,
-                            ]
-                              .filter(Boolean)
-                              .join(", ");
-
-                            form.setValue(
-                              "subscriberAddress",
-                              address
-                            );
+                        onValueChange={(val) => {
+                          field.onChange(val);
+                          if (val === "Self" && member) {
+                            form.setValue("policyHolderName", memberName);
                           }
                         }}
                       >
@@ -1196,160 +1024,75 @@ export default function AddInsurancePage() {
                             <SelectValue placeholder="Select relationship" />
                           </SelectTrigger>
                         </FormControl>
-
                         <SelectContent>
-                          {relationshipOptions.map(
-                            (relationship) => (
-                              <SelectItem
-                                key={
-                                  relationship.value
-                                }
-                                value={
-                                  relationship.value
-                                }
-                              >
-                                {relationship.label}
-                              </SelectItem>
-                            )
-                          )}
+                          {relationshipOptions.map((rel) => (
+                            <SelectItem key={rel.value} value={rel.value}>
+                              {rel.label}
+                            </SelectItem>
+                          ))}
                         </SelectContent>
                       </Select>
-
                       <FormMessage />
                     </FormItem>
                   )}
                 />
               </div>
 
-              {/* ---------------------------------------------------------------- */}
-              {/* SUBSCRIBER INFORMATION                                          */}
-              {/* ---------------------------------------------------------------- */}
-
-              {requiresSubscriber && (
-                <div className="border-t pt-6">
-                  <div className="mb-5">
-                    <h2 className="text-lg font-semibold text-customTeal">
-                      Subscriber Information
-                    </h2>
-
-                    <p className="text-sm text-gray-500 mt-1">
-                      Required for commercial insurance.
-                    </p>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {/* Subscriber Name */}
+              {/* ------------------------------------------------------------ */}
+              {/* SECTION 2: CONDITIONAL EMPLOYER / GOVT DETAILS                */}
+              {/* ------------------------------------------------------------ */}
+              {isGroupInsurance && (
+                <div className="border-t pt-6 bg-amber-50/50 p-4 rounded-lg border border-amber-200">
+                  <h3 className="text-md font-semibold text-amber-900 mb-3">
+                    Corporate / Employer-Sponsored Details
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <FormField
                       control={form.control}
-                      name="subscriberName"
+                      name="employerName"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>
-                            Subscriber Name*
-                          </FormLabel>
-
+                          <FormLabel>Employer / Company Name*</FormLabel>
                           <FormControl>
                             <Input
-                              placeholder="Enter subscriber full name"
+                              placeholder="e.g. Infosys, TCS, Wipro"
                               {...field}
                             />
                           </FormControl>
-
                           <FormMessage />
                         </FormItem>
                       )}
                     />
 
-                    {/* Subscriber DOB */}
                     <FormField
                       control={form.control}
-                      name="subscriberDateOfBirth"
+                      name="employeeId"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>
-                            Subscriber Date of Birth*
-                          </FormLabel>
-
+                          <FormLabel>Employee ID</FormLabel>
                           <FormControl>
                             <Input
-                              type="date"
+                              placeholder="e.g. EMP-12345"
                               {...field}
                             />
                           </FormControl>
-
                           <FormMessage />
                         </FormItem>
                       )}
                     />
 
-                    {/* Subscriber SSN */}
                     <FormField
                       control={form.control}
-                      name="subscriberSsn"
+                      name="groupNumber"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>
-                            Subscriber SSN*
-                          </FormLabel>
-
+                          <FormLabel>Corporate Policy / Group No.</FormLabel>
                           <FormControl>
                             <Input
-                              type="password"
-                              autoComplete="off"
-                              placeholder="Enter subscriber SSN"
+                              placeholder="e.g. GRP-998877"
                               {...field}
                             />
                           </FormControl>
-
-                          <FormDescription>
-                            Sensitive information. Store
-                            and transmit only when required.
-                          </FormDescription>
-
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    {/* Subscriber Copay */}
-                    <FormField
-                      control={form.control}
-                      name="subscriberCopay"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>
-                            Subscriber Copay
-                          </FormLabel>
-
-                          <FormControl>
-                            <Input
-                              placeholder="Enter copay amount"
-                              {...field}
-                            />
-                          </FormControl>
-
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    {/* Subscriber Address */}
-                    <FormField
-                      control={form.control}
-                      name="subscriberAddress"
-                      render={({ field }) => (
-                        <FormItem className="md:col-span-2">
-                          <FormLabel>
-                            Subscriber Address*
-                          </FormLabel>
-
-                          <FormControl>
-                            <Input
-                              placeholder="Enter subscriber address"
-                              {...field}
-                            />
-                          </FormControl>
-
                           <FormMessage />
                         </FormItem>
                       )}
@@ -1358,30 +1101,243 @@ export default function AddInsurancePage() {
                 </div>
               )}
 
-              {/* ---------------------------------------------------------------- */}
-              {/* INSURANCE CARD IMAGES                                            */}
-              {/* ---------------------------------------------------------------- */}
+              {isGovtScheme && (
+                <div className="border-t pt-6 bg-emerald-50/50 p-4 rounded-lg border border-emerald-200">
+                  <h3 className="text-md font-semibold text-emerald-900 mb-3">
+                    Government Health Scheme Details
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <FormField
+                      control={form.control}
+                      name="schemeName"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Scheme Name</FormLabel>
+                          <FormControl>
+                            <Input
+                              placeholder="e.g. Ayushman Bharat PM-JAY / MJPJAY"
+                              {...field}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
 
+                    <FormField
+                      control={form.control}
+                      name="beneficiaryId"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Beneficiary / ABHA / Ration Card ID</FormLabel>
+                          <FormControl>
+                            <Input
+                              placeholder="e.g. PMJAY-XXXX-XXXX or ABHA ID"
+                              {...field}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* ------------------------------------------------------------ */}
+              {/* SECTION 3: POLICY COVERAGE & VALIDITY                         */}
+              {/* ------------------------------------------------------------ */}
+              <div className="border-t pt-6">
+                <h3 className="text-lg font-semibold text-customTeal mb-4">
+                  Coverage & Validity
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* Effective Date (Start) */}
+                  <FormField
+                    control={form.control}
+                    name="effectiveDate"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Policy Start Date*</FormLabel>
+                        <FormControl>
+                          <Input type="date" {...field} />
+                        </FormControl>
+                        <FormDescription>Cannot be a future date.</FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  {/* Expiry Date */}
+                  <FormField
+                    control={form.control}
+                    name="expiryDate"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Policy Expiry Date</FormLabel>
+                        <FormControl>
+                          <Input type="date" {...field} />
+                        </FormControl>
+                        <FormDescription>Valid till date on policy schedule.</FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  {/* Sum Insured in INR */}
+                  <FormField
+                    control={form.control}
+                    name="sumInsured"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Sum Insured (₹ INR)</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="number"
+                            placeholder="e.g. 500000"
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormDescription>Total medical cover per policy year.</FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  {/* Coverage Type */}
+                  <FormField
+                    control={form.control}
+                    name="coverageType"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Coverage Type*</FormLabel>
+                        <Select
+                          value={field.value}
+                          onValueChange={field.onChange}
+                        >
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select coverage type" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {coverageTypes.map((cov) => (
+                              <SelectItem key={cov} value={cov}>
+                                {cov}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  {/* Room Rent Limit */}
+                  <FormField
+                    control={form.control}
+                    name="roomRentLimit"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Room Rent Limit / Capping</FormLabel>
+                        <Select
+                          value={field.value}
+                          onValueChange={field.onChange}
+                        >
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select room rent limit" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {roomRentLimits.map((limit) => (
+                              <SelectItem key={limit} value={limit}>
+                                {limit}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormDescription>
+                          Affects proportionate room deduction during billing.
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  {/* Co-Pay */}
+                  <FormField
+                    control={form.control}
+                    name="copay"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Co-Payment (% or amount)</FormLabel>
+                        <FormControl>
+                          <Input
+                            placeholder="e.g. 10% or None"
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  {/* Deductible */}
+                  <FormField
+                    control={form.control}
+                    name="deductible"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Deductible (₹ INR)</FormLabel>
+                        <FormControl>
+                          <Input
+                            placeholder="e.g. 25000"
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  {/* Coverage Restrictions / Remarks */}
+                  <FormField
+                    control={form.control}
+                    name="coverageRestrictions"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Restrictions / Waiting Period Remarks</FormLabel>
+                        <FormControl>
+                          <Input
+                            placeholder="e.g. 2 yrs pre-existing disease waiting period"
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+              </div>
+
+              {/* ------------------------------------------------------------ */}
+              {/* SECTION 4: INSURANCE DOCUMENTS                                */}
+              {/* ------------------------------------------------------------ */}
               <div className="border-t pt-6">
                 <div className="mb-5">
                   <h2 className="text-lg font-semibold text-customTeal">
-                    Insurance Card
+                    Insurance Documents
                   </h2>
-
                   <p className="text-sm text-gray-500 mt-1">
-                    Upload the front and back of the
-                    insurance card. JPG, PNG, or GIF,
-                    maximum 5 MB per image.
+                    Upload health card and policy schedule for faster cashless verification. Maximum 5 MB per file.
                   </p>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {/* Front */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  {/* Front Card */}
                   <div className="space-y-3">
-                    <label
-                      htmlFor="frontCardImage"
-                      className="text-sm font-medium"
-                    >
+                    <label htmlFor="frontCardImage" className="text-sm font-medium">
                       Front of Card
                     </label>
 
@@ -1390,18 +1346,15 @@ export default function AddInsurancePage() {
                         {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img
                           src={frontCard.preview}
-                          alt="Insurance card front preview"
-                          className="h-56 w-full object-contain"
+                          alt="Front card preview"
+                          className="h-44 w-full object-contain"
                         />
-
                         <Button
                           type="button"
                           variant="destructive"
                           size="icon"
                           className="absolute right-2 top-2"
-                          onClick={() =>
-                            removeFile("front")
-                          }
+                          onClick={() => removeFile("front")}
                         >
                           <X className="h-4 w-4" />
                         </Button>
@@ -1409,17 +1362,11 @@ export default function AddInsurancePage() {
                     ) : (
                       <label
                         htmlFor="frontCardImage"
-                        className="flex min-h-40 cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed border-gray-300 bg-gray-50 px-4 text-center hover:bg-gray-100"
+                        className="flex min-h-36 cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed border-gray-300 bg-gray-50 px-4 text-center hover:bg-gray-100"
                       >
-                        <Upload className="h-8 w-8 text-gray-400 mb-2" />
-
-                        <span className="text-sm font-medium">
-                          Upload front of card
-                        </span>
-
-                        <span className="text-xs text-gray-500 mt-1">
-                          JPG, PNG, GIF up to 5 MB
-                        </span>
+                        <Upload className="h-7 w-7 text-gray-400 mb-2" />
+                        <span className="text-sm font-medium">Upload front of card</span>
+                        <span className="text-xs text-gray-500 mt-1">JPG, PNG, GIF up to 5 MB</span>
                       </label>
                     )}
 
@@ -1428,28 +1375,16 @@ export default function AddInsurancePage() {
                       type="file"
                       accept="image/jpeg,image/png,image/gif"
                       className="hidden"
-                      onChange={(event) => {
-                        const file =
-                          event.target.files?.[0] ||
-                          null;
-
-                        handleFileChange(
-                          file,
-                          "front"
-                        );
-
-                        event.currentTarget.value =
-                          "";
+                      onChange={(e) => {
+                        handleCardChange(e.target.files?.[0] || null, "front");
+                        e.currentTarget.value = "";
                       }}
                     />
                   </div>
 
-                  {/* Back */}
+                  {/* Back Card */}
                   <div className="space-y-3">
-                    <label
-                      htmlFor="backCardImage"
-                      className="text-sm font-medium"
-                    >
+                    <label htmlFor="backCardImage" className="text-sm font-medium">
                       Back of Card
                     </label>
 
@@ -1458,18 +1393,15 @@ export default function AddInsurancePage() {
                         {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img
                           src={backCard.preview}
-                          alt="Insurance card back preview"
-                          className="h-56 w-full object-contain"
+                          alt="Back card preview"
+                          className="h-44 w-full object-contain"
                         />
-
                         <Button
                           type="button"
                           variant="destructive"
                           size="icon"
                           className="absolute right-2 top-2"
-                          onClick={() =>
-                            removeFile("back")
-                          }
+                          onClick={() => removeFile("back")}
                         >
                           <X className="h-4 w-4" />
                         </Button>
@@ -1477,17 +1409,11 @@ export default function AddInsurancePage() {
                     ) : (
                       <label
                         htmlFor="backCardImage"
-                        className="flex min-h-40 cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed border-gray-300 bg-gray-50 px-4 text-center hover:bg-gray-100"
+                        className="flex min-h-36 cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed border-gray-300 bg-gray-50 px-4 text-center hover:bg-gray-100"
                       >
-                        <FileText className="h-8 w-8 text-gray-400 mb-2" />
-
-                        <span className="text-sm font-medium">
-                          Upload back of card
-                        </span>
-
-                        <span className="text-xs text-gray-500 mt-1">
-                          JPG, PNG, GIF up to 5 MB
-                        </span>
+                        <FileText className="h-7 w-7 text-gray-400 mb-2" />
+                        <span className="text-sm font-medium">Upload back of card</span>
+                        <span className="text-xs text-gray-500 mt-1">JPG, PNG, GIF up to 5 MB</span>
                       </label>
                     )}
 
@@ -1496,33 +1422,68 @@ export default function AddInsurancePage() {
                       type="file"
                       accept="image/jpeg,image/png,image/gif"
                       className="hidden"
-                      onChange={(event) => {
-                        const file =
-                          event.target.files?.[0] ||
-                          null;
+                      onChange={(e) => {
+                        handleCardChange(e.target.files?.[0] || null, "back");
+                        e.currentTarget.value = "";
+                      }}
+                    />
+                  </div>
 
-                        handleFileChange(
-                          file,
-                          "back"
-                        );
+                  {/* Policy Document / Schedule */}
+                  <div className="space-y-3">
+                    <label htmlFor="policyDocument" className="text-sm font-medium">
+                      Policy Document / Schedule
+                    </label>
 
-                        event.currentTarget.value =
-                          "";
+                    {policyDoc.file ? (
+                      <div className="relative overflow-hidden rounded-lg border bg-gray-50 p-3 min-h-36 flex flex-col justify-center items-center">
+                        <FileCheck className="h-10 w-10 text-emerald-600 mb-2" />
+                        <p className="text-xs font-semibold text-center truncate max-w-full px-2">
+                          {policyDoc.name}
+                        </p>
+                        <Button
+                          type="button"
+                          variant="destructive"
+                          size="icon"
+                          className="absolute right-2 top-2"
+                          onClick={() => removeFile("doc")}
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    ) : (
+                      <label
+                        htmlFor="policyDocument"
+                        className="flex min-h-36 cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed border-gray-300 bg-gray-50 px-4 text-center hover:bg-gray-100"
+                      >
+                        <FileText className="h-7 w-7 text-gray-400 mb-2" />
+                        <span className="text-sm font-medium">Upload Policy Schedule</span>
+                        <span className="text-xs text-gray-500 mt-1">PDF, JPG, PNG up to 5 MB</span>
+                      </label>
+                    )}
+
+                    <input
+                      id="policyDocument"
+                      type="file"
+                      accept="image/jpeg,image/png,image/gif,application/pdf"
+                      className="hidden"
+                      onChange={(e) => {
+                        handleDocChange(e.target.files?.[0] || null);
+                        e.currentTarget.value = "";
                       }}
                     />
                   </div>
                 </div>
               </div>
 
-              {/* ---------------------------------------------------------------- */}
-              {/* PRIMARY                                                           */}
-              {/* ---------------------------------------------------------------- */}
-
+              {/* ------------------------------------------------------------ */}
+              {/* SECTION 5: PRIMARY INSURANCE                                  */}
+              {/* ------------------------------------------------------------ */}
               <FormField
                 control={form.control}
                 name="isPrimary"
                 render={({ field }) => (
-                  <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
+                  <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4 bg-gray-50/50">
                     <FormControl>
                       <input
                         type="checkbox"
@@ -1531,26 +1492,27 @@ export default function AddInsurancePage() {
                         className="mt-1 h-4 w-4 rounded border-gray-300 text-customTeal focus:ring-customTeal"
                       />
                     </FormControl>
-
                     <div className="space-y-1 leading-none">
-                      <FormLabel>
-                        Make this the primary insurance
-                      </FormLabel>
-
+                      <FormLabel>Make this the primary insurance</FormLabel>
                       <FormDescription>
-                        If selected, any existing primary
-                        insurance for this family member
-                        will no longer be primary.
+                        If selected, any existing primary insurance for {memberName} will automatically be set as secondary.
                       </FormDescription>
                     </div>
                   </FormItem>
                 )}
               />
 
-              {/* ---------------------------------------------------------------- */}
-              {/* ACTIONS                                                           */}
-              {/* ---------------------------------------------------------------- */}
+              {/* Verification status indicator */}
+              <div className="flex items-center gap-2 p-3 bg-slate-50 border rounded-md text-xs text-slate-600">
+                <Badge variant="outline" className="bg-amber-100 text-amber-800 border-amber-300">
+                  Initial Status: Pending
+                </Badge>
+                <span>Newly added policies will be verified by the hospital billing department prior to cashless approval.</span>
+              </div>
 
+              {/* ------------------------------------------------------------ */}
+              {/* ACTIONS                                                      */}
+              {/* ------------------------------------------------------------ */}
               <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-3 pt-4 border-t mt-8">
                 <Button
                   type="button"
@@ -1564,13 +1526,10 @@ export default function AddInsurancePage() {
                 <Button
                   type="submit"
                   className="bg-customTeal hover:bg-customTeal/90 text-white"
-                  disabled={
-                    isSubmitting ||
-                    loadingMember
-                  }
+                  disabled={isSubmitting || loadingMember}
                 >
                   {isSubmitting ? (
-                    "Saving..."
+                    "Saving Insurance..."
                   ) : (
                     <>
                       <Save className="h-4 w-4 mr-2" />

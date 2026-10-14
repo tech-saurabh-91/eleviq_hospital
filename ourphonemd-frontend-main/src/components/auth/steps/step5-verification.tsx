@@ -49,12 +49,14 @@ interface Step5VerificationProps {
   ) => Promise<void>;
 
   registrationId: string | null;
+  onContinue: () => void;
 }
 
 export function Step5Verification({
   onSendVerificationCode,
   onResendVerificationCode,
   registrationId,
+  onContinue,
 }: Step5VerificationProps) {
   const formContext = useFormContext();
 
@@ -109,6 +111,14 @@ export function Step5Verification({
   const [resendCooldown, setResendCooldown] =
     useState(0);
   const [sendError, setSendError] = useState("");
+
+  useEffect(() => {
+    if (!registrationId || !verificationMethod) return;
+
+    setIsCodeSent(true);
+    setResendCooldown(0);
+  }, [registrationId, verificationMethod]);
+
 
   useEffect(() => {
     if (resendCooldown <= 0) {
@@ -460,13 +470,16 @@ export function Step5Verification({
           </span>
         </div>
 
+
         <Button
-          type="submit"
+          type="button"
           className="w-full mt-4 bg-customTeal hover:bg-customTeal/90 text-white"
           disabled={!isCodeSent || isSendingCode}
+          onClick={onContinue}
         >
           Continue
         </Button>
+
       </div>
     </Card>
   );

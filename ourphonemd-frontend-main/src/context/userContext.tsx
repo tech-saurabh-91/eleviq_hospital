@@ -1,47 +1,85 @@
 "use client";
 import { IUser, IUserContextType } from "@/types/User";
-import { createContext, useContext, useState, useCallback } from "react";
+import { createContext, useContext, useState, useCallback, useEffect } from "react";
+import api from "@/helper/axios";
+import { PATIENT_AUTH_API, PATIENT_PROFILE_API } from "@/helper/api";
 
 const UserContext = createContext<IUserContextType | undefined>(undefined);
 
 export const organizationId = "cm7c5c96u0005ijpwi6t9idnz";
 
+const mapPatientProfile = (profile: any): IUser => ({
+  id: profile.patientId || profile._id,
+  email: profile.email,
+  firstName: profile.firstName,
+  middleName: profile.middleName || "",
+  lastName: profile.lastName,
+  phoneNumber: profile.primaryPhone || profile.mobile || "",
+  secondaryPhone: profile.secondaryPhone || "",
+  dateOfBirth: profile.dateOfBirth,
+  gender: String(profile.gender || "OTHER").toUpperCase() as IUser["gender"],
+  address: profile.address?.street || "",
+  city: profile.address?.city || "",
+  state: profile.address?.state || "",
+  zipCode: profile.address?.zipCode || "",
+  bloodType: profile.bloodType || "",
+  allergies: Array.isArray(profile.allergies) ? profile.allergies : [],
+  avatar: profile.profilePicture?.url || "",
+  createdAt: profile.memberSince || profile.createdAt,
+  updatedAt: profile.lastUpdated || profile.updatedAt,
+});
+
 export const UserProvider = ({ children }: { children: React.ReactNode }) => {
-  const [user, setUser] = useState<IUser | null>(() => ({
-    id: "3fa85f64-5717-4562-b3fc-2c963f66afa6",
-    email: "user@example.com",
-    firstName: "Jhon",
-    lastName: "Dev",
-    phoneNumber: "12345678900",
-    dateOfBirth: "2025-05-21",
-    gender: "MALE",
-    address: "xyz karachi sindh PK",
-    city: "karachi",
-    state: "abcd",
-    zipCode: "99999",
-    createdAt: "2025-05-21T15:07:08.885Z",
-    updatedAt: "2025-05-21T15:07:08.885Z",
-  }));
+  const [user, setUser] = useState<IUser | null>(null);
+  const [isLoadingUser, setIsLoadingUser] = useState(true);
 
+  const refreshUser = useCallback(async () => {
+    try {
+      const response = await api.get(PATIENT_PROFILE_API.GET);
+      const profile = response.data?.data ?? response.data;
+      const patient = mapPatientProfile(profile);
 
-  const handleSetUser = useCallback((userData: IUser | null) => {
-    setUser(userData);
-    if (userData) {
-      localStorage.setItem("user", JSON.stringify(userData));
-    } else {
-      localStorage.removeItem("user");
+      setUser(patient);
+      return patient;
+    } catch {
+      setUser(null);
+      return null;
     }
   }, []);
 
+  useEffect(() => {
+    const loadSession = async () => {
+      await refreshUser();
+      setIsLoadingUser(false);
+    };
+
+    loadSession();
+  }, [refreshUser]);
+
+  useEffect(() => {
+    const clearExpiredSession = () => setUser(null);
+
+    window.addEventListener("patient-session-expired", clearExpiredSession);
+    return () => {
+      window.removeEventListener("patient-session-expired", clearExpiredSession);
+    };
+  }, []);
+
+  const handleSetUser = useCallback((userData: IUser | null) => {
+    setUser(userData);
+  }, []);
+
   const logout = useCallback(() => {
-    handleSetUser(null);
-    localStorage.removeItem("token");
-    // Add any additional cleanup here
+    return api.post(PATIENT_AUTH_API.LOGOUT).catch(() => undefined).then(() => {
+      handleSetUser(null);
+    });
   }, [handleSetUser]);
 
   const value = {
     user,
     setUser: handleSetUser,
+    isLoadingUser,
+    refreshUser,
     logout,
   };
 

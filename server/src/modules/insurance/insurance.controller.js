@@ -13,7 +13,7 @@ const uploadToCloudinary = (file, folder) => {
         const stream = cloudinary.uploader.upload_stream(
             {
                 folder,
-                resource_type: "image",
+                resource_type: "auto",
             },
             (error, result) => {
                 if (error) {
@@ -35,7 +35,7 @@ const deleteFromCloudinary = async (publicId) => {
     if (!publicId) return;
 
     await cloudinary.uploader.destroy(publicId, {
-        resource_type: "image",
+        resource_type: "auto",
     });
 };
 
@@ -51,6 +51,7 @@ const createInsurance = async (req, res) => {
 
         let frontCardImage;
         let backCardImage;
+        let policyDocument;
 
         if (req.files?.frontCardImage?.[0]) {
             frontCardImage = await uploadToCloudinary(
@@ -70,11 +71,21 @@ const createInsurance = async (req, res) => {
             uploadedImages.push(backCardImage.publicId);
         }
 
+        if (req.files?.policyDocument?.[0]) {
+            policyDocument = await uploadToCloudinary(
+                req.files.policyDocument[0],
+                folder
+            );
+
+            uploadedImages.push(policyDocument.publicId);
+        }
+
         const insuranceData = {
             ...req.body,
             insuranceObjectId: insuranceId,
             frontCardImage,
             backCardImage,
+            policyDocument,
         };
 
         const result = await createInsuranceService(
@@ -168,6 +179,8 @@ const updateInsurance = async (req, res) => {
                 existingInsurance.frontCardImage,
             backCardImage:
                 existingInsurance.backCardImage,
+            policyDocument:
+                existingInsurance.policyDocument,
         };
 
         const folder = `insurance-cards/${req.user.patientId}/${req.params.insuranceId}`;
@@ -198,6 +211,18 @@ const updateInsurance = async (req, res) => {
             );
         }
 
+        if (req.files?.policyDocument?.[0]) {
+            uploadedImagesData.policyDocument =
+                await uploadToCloudinary(
+                    req.files.policyDocument[0],
+                    folder
+                );
+
+            uploadedImages.push(
+                uploadedImagesData.policyDocument.publicId
+            );
+        }
+
         const result = await updateInsuranceService(
             req.user._id,
             req.params.insuranceId,
@@ -221,6 +246,15 @@ const updateInsurance = async (req, res) => {
         ) {
             await deleteFromCloudinary(
                 oldImages.backCardImage.publicId
+            );
+        }
+
+        if (
+            uploadedImagesData.policyDocument &&
+            oldImages.policyDocument?.publicId
+        ) {
+            await deleteFromCloudinary(
+                oldImages.policyDocument.publicId
             );
         }
 
@@ -259,6 +293,7 @@ const deleteInsurance = async (req, res) => {
         const imagesToDelete = [
             result.deletedImages?.frontCardImage?.publicId,
             result.deletedImages?.backCardImage?.publicId,
+            result.deletedImages?.policyDocument?.publicId,
         ].filter(Boolean);
 
         for (const publicId of imagesToDelete) {

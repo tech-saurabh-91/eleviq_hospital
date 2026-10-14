@@ -19,9 +19,9 @@ const poppins = Poppins({
 });
 
 export const metadata: Metadata = {
-  title: "OurPhoneMD - Telemedicine Solutions",
+  title: "Eleviq Hospital - Telemedicine Solutions",
   description:  
-    "Connect with board-certified healthcare providers from the comfort of your home. OurPhoneMD provides telemedicine services for the entire family.",
+    "Connect with board-certified healthcare providers from the comfort of your home. Eleviq Hospital provides telemedicine services for the entire family.",
 };
 
 export default function RootLayout({

@@ -1,8 +1,30 @@
+"use client";
+
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
 import PatientNavbar from "@/components/layout/patient/PatientNavbar";
 import { PatientSidebar } from "@/components/layout/patient/PatientSidebar";
 import { SidebarProvider } from "@/components/ui/sidebar";
+import { useUser } from "@/context/userContext";
 
 export default function PatientLayout({ children }: { children: React.ReactNode }) {
+  const router = useRouter();
+  const { user, isLoadingUser } = useUser();
+
+  useEffect(() => {
+    if (!isLoadingUser && !user) {
+      router.replace("/signin");
+    }
+  }, [isLoadingUser, router, user]);
+
+  if (isLoadingUser || !user) {
+    return (
+      <div className="flex min-h-screen items-center justify-center text-sm text-gray-500">
+        Checking your session...
+      </div>
+    );
+  }
+
   return (
     <SidebarProvider defaultOpen={true}>
       <div className="flex min-h-screen flex-col">

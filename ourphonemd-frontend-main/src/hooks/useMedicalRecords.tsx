@@ -1,7 +1,7 @@
 "use client";
 
 import { PATIENT_MEDICAL_RECORDS_API } from "@/helper/api";
-import axios from "axios";
+import api from "@/helper/axios";
 import { useState } from "react";
 
 export const useMedicalRecords = () => {
@@ -14,7 +14,7 @@ export const useMedicalRecords = () => {
     setError(null);
 
     try {
-      const response = await axios.get(
+      const response = await api.get(
         PATIENT_MEDICAL_RECORDS_API.GET_ALL
       );
 
@@ -35,7 +35,7 @@ export const useMedicalRecords = () => {
   const getMedicalRecordById = async (id: string) => {
     setLoading(true);
     try {
-      const response = await axios.get(
+      const response = await api.get(
         `${PATIENT_MEDICAL_RECORDS_API.GET_SINGLE(id)}`
       );
       return response.data;

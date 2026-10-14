@@ -15,7 +15,7 @@ export const states = [
   { value: "IN", label: "Indiana" },
   { value: "IA", label: "Iowa" },
   { value: "KS", label: "Kansas" },
-  { value: "KY", label: "Kentucky" },
+  { value: "KY", label: "New Delhi" },
   { value: "LA", label: "Louisiana" },
   { value: "ME", label: "Maine" },
   { value: "MD", label: "Maryland" },

@@ -57,6 +57,24 @@ import {
 /* TYPES                                                                      */
 /* -------------------------------------------------------------------------- */
 
+interface FamilyMember {
+  familyMemberId: string;
+  firstName: string;
+  middleName?: string;
+  lastName: string;
+  relationship: string;
+  dateOfBirth: string;
+  gender: string;
+  email: string;
+  phone: string;
+  address?: {
+    street?: string;
+    city?: string;
+    state?: string;
+    zipCode?: string;
+  };
+}
+
 interface InsuranceFile {
   file: File | null;
   preview: string;
@@ -349,6 +367,10 @@ const validateInsuranceFile = (file: File) => {
 
 export default function AddInsurancePage() {
   const router = useRouter();
+
+  const [member] = useState<FamilyMember | null>(null);
+  const [familyMemberId] = useState<string>("");
+  const [loadingMember] = useState(false);
 
   const [isSubmitting, setIsSubmitting] =
     useState(false);

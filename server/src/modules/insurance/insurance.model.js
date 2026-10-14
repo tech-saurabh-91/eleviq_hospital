@@ -121,6 +121,120 @@ const insuranceSchema = new mongoose.Schema(
                 trim: true,
             },
         },
+
+        // Indian HMS Insurance Fields
+        tpa: {
+            type: String,
+            trim: true,
+        },
+
+        planName: {
+            type: String,
+            trim: true,
+        },
+
+        policyType: {
+            type: String,
+            trim: true,
+            default: "Individual",
+        },
+
+        policyHolderName: {
+            type: String,
+            trim: true,
+        },
+
+        expiryDate: {
+            type: Date,
+        },
+
+        sumInsured: {
+            type: Number,
+            min: 0,
+        },
+
+        remainingSumInsured: {
+            type: Number,
+            min: 0,
+        },
+
+        roomRentLimit: {
+            type: String,
+            trim: true,
+        },
+
+        copay: {
+            type: String,
+            trim: true,
+        },
+
+        deductible: {
+            type: String,
+            trim: true,
+        },
+
+        coverageRestrictions: {
+            type: String,
+            trim: true,
+        },
+
+        // Group / Employer Insurance
+        employerName: {
+            type: String,
+            trim: true,
+        },
+
+        employeeId: {
+            type: String,
+            trim: true,
+        },
+
+        // Government Schemes (e.g. AB PM-JAY, State Schemes)
+        schemeName: {
+            type: String,
+            trim: true,
+        },
+
+        beneficiaryId: {
+            type: String,
+            trim: true,
+        },
+
+        // Policy Document / Schedule (PDF / Image)
+        policyDocument: {
+            publicId: {
+                type: String,
+                trim: true,
+            },
+            url: {
+                type: String,
+                trim: true,
+            },
+        },
+
+        // Verification Workflow
+        verificationStatus: {
+            type: String,
+            enum: ["Pending", "Verified", "Rejected", "Expired"],
+            default: "Pending",
+        },
+
+        verifiedBy: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "User",
+            default: null,
+        },
+
+        verificationDate: {
+            type: Date,
+            default: null,
+        },
+
+        verificationRemarks: {
+            type: String,
+            trim: true,
+            default: "",
+        },
     },
     {
         timestamps: true,

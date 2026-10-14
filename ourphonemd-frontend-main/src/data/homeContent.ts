@@ -80,8 +80,8 @@ export interface HomePageContent {
 // Default content that can be overridden
 export const homeContent: HomePageContent = {
   hero: {
-    title: "Welcome to OurPhone",
-    titleHighlight: "MD",
+    title: "Welcome to Eleviq Hospital",
+    titleHighlight: "",
     description: "Connect with board-certified healthcare providers from the comfort of your home. Make appointments in just one minute.",
     primaryButtonText: "Book Appointment",
     primaryButtonLink: "/book",
@@ -96,8 +96,8 @@ export const homeContent: HomePageContent = {
     visionTitle: "Our",
     visionHighlight: "Vision",
     paragraphs: [
-      "OurPhoneMD was created to provide more personal one-on-one care. Unlike other online telemedicine services, OurPhoneMD was created for Kentuckians.",
-      "The OurPhoneMD experience is more similar to your traditional doctor's office. You will be able to follow up with the same provider, have multiple family members seen within the same appointment, and order further lab work or imaging.",
+      "Eleviq Hospital was created to provide more personal one-on-one care. Unlike other online telemedicine services, Eleviq Hospital was created for Kentuckians.",
+      "The Eleviq Hospital experience is more similar to your traditional doctor's office. You will be able to follow up with the same provider, have multiple family members seen within the same appointment, and order further lab work or imaging.",
       "Our service won't replace your regular doctor visits but can be a great online resource when you need to quickly reach a physician at home or on the go."
     ],
     benefits: [
@@ -112,7 +112,7 @@ export const homeContent: HomePageContent = {
   
   features: {
     title: "Why Choose",
-    highlightedTitle: "OurPhoneMD",
+    highlightedTitle: "Eleviq Hospital",
     description: "We offer convenient, high-quality telehealth services designed to meet your healthcare needs from anywhere.",
     features: [
       {
@@ -173,7 +173,7 @@ export const homeContent: HomePageContent = {
   benefits: {
     title: "The",
     highlightedWord: "Benefits",
-    description: "Discover why thousands of patients choose OurPhoneMD for their telehealth needs.",
+    description: "Discover why thousands of patients choose Eleviq Hospital for their telehealth needs.",
     benefits: [
       {
         title: "Convenience",
@@ -201,7 +201,7 @@ export const homeContent: HomePageContent = {
   cta: {
     title: "Ready to experience healthcare",
     titleHighlight: "reimagined?",
-    description: "Book your first appointment today and see why our patients love OurPhoneMD.",
+    description: "Book your first appointment today and see why our patients love Eleviq Hospital.",
     buttonText: "Book Appointment Now",
     buttonLink: "/book"
   }

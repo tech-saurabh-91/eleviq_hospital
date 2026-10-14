@@ -872,12 +872,18 @@ const createRegistrationInsurance = async (
         backCardImage,
     } = insuranceData;
 
-    if (
-        new Date(effectiveDate) >
-        new Date()
-    ) {
+    if (new Date(effectiveDate) > new Date()) {
         throw new Error(
             "Insurance effective date cannot be in the future"
+        );
+    }
+
+    if (
+        insuranceData.expiryDate &&
+        new Date(insuranceData.expiryDate) < new Date(effectiveDate)
+    ) {
+        throw new Error(
+            "Policy expiry date cannot be earlier than effective date"
         );
     }
 
@@ -901,34 +907,42 @@ const createRegistrationInsurance = async (
             : "Guardian";
 
     const insurance =
-
         await Insurance.create({
             patient: patient._id,
 
             insuranceType,
-
             insuranceProvider,
-
             insuranceId,
-
             policyNumber,
-
             groupNumber,
-
             ediPayer,
-
             coverageType,
 
             effectiveDate:
                 new Date(effectiveDate),
 
             relationship,
-
             isPrimary,
 
             frontCardImage,
-
             backCardImage,
+
+            // Indian HMS Insurance Fields
+            tpa: insuranceData.tpa,
+            planName: insuranceData.planName,
+            policyType: insuranceData.policyType || "Individual",
+            policyHolderName: insuranceData.policyHolderName || (relationship === "Self" ? `${patient.firstName} ${patient.lastName}` : undefined),
+            expiryDate: insuranceData.expiryDate ? new Date(insuranceData.expiryDate) : undefined,
+            sumInsured: insuranceData.sumInsured !== undefined ? Number(insuranceData.sumInsured) : undefined,
+            roomRentLimit: insuranceData.roomRentLimit,
+            copay: insuranceData.copay,
+            deductible: insuranceData.deductible,
+            coverageRestrictions: insuranceData.coverageRestrictions,
+            employerName: insuranceData.employerName,
+            employeeId: insuranceData.employeeId,
+            schemeName: insuranceData.schemeName,
+            beneficiaryId: insuranceData.beneficiaryId,
+            verificationStatus: "Pending",
         });
 
     return {

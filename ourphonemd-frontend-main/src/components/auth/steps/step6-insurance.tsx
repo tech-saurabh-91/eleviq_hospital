@@ -234,16 +234,32 @@ export function Step6Insurance({
                   </FormControl>
 
                   <SelectContent>
+                    <SelectItem value="Private Health Insurance">
+                      Private Health Insurance
+                    </SelectItem>
+
+                    <SelectItem value="Employer-Sponsored / Group">
+                      Employer-Sponsored / Group
+                    </SelectItem>
+
+                    <SelectItem value="Ayushman Bharat PM-JAY">
+                      Ayushman Bharat PM-JAY
+                    </SelectItem>
+
+                    <SelectItem value="CGHS">
+                      CGHS (Central Govt Health Scheme)
+                    </SelectItem>
+
+                    <SelectItem value="ESIC">
+                      ESIC (Employees&apos; State Insurance)
+                    </SelectItem>
+
+                    <SelectItem value="Government Health Scheme">
+                      Other Government Scheme
+                    </SelectItem>
+
                     <SelectItem value="commercial">
-                      Commercial
-                    </SelectItem>
-
-                    <SelectItem value="medicaid">
-                      Medicaid
-                    </SelectItem>
-
-                    <SelectItem value="medicare">
-                      Medicare
+                      Commercial Insurance
                     </SelectItem>
 
                     <SelectItem value="other">

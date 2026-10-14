@@ -48,7 +48,7 @@ export function Step1AccountCreation() {
             </AlertDescription>
           </Alert>
 
-          <div className="h-64 overflow-y-auto border rounded-md p-4 bg-gray-50 mb-6 text-sm text-gray-700">
+          <div className="h-64 overflow-y-auto border rounded-md p-4 bg-gray-50 mb-4 text-sm text-gray-700">
             <div className="space-y-4">
               <section>
                 <h3 className="font-semibold mb-1 text-customTeal">

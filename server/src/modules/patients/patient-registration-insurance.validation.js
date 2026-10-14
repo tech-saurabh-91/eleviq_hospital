@@ -60,6 +60,26 @@ const createRegistrationInsuranceSchema = z.object({
         .string()
         .trim()
         .optional(),
+
+    // Indian HMS Insurance Fields (Optional during registration)
+    tpa: z.string().trim().optional(),
+    planName: z.string().trim().optional(),
+    policyType: z.string().trim().optional(),
+    policyHolderName: z.string().trim().optional(),
+    expiryDate: z.string().trim().optional(),
+    sumInsured: z.preprocess((val) => {
+        if (val === "" || val === undefined || val === null) return undefined;
+        const num = Number(val);
+        return isNaN(num) ? undefined : num;
+    }, z.number().nonnegative().optional()),
+    roomRentLimit: z.string().trim().optional(),
+    copay: z.string().trim().optional(),
+    deductible: z.string().trim().optional(),
+    coverageRestrictions: z.string().trim().optional(),
+    employerName: z.string().trim().optional(),
+    employeeId: z.string().trim().optional(),
+    schemeName: z.string().trim().optional(),
+    beneficiaryId: z.string().trim().optional(),
 });
 
 module.exports = {

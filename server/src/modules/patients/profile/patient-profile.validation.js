@@ -6,17 +6,23 @@ const updateMyProfileSchema = z
             .string()
             .trim()
             .min(1, "First name is required")
+            .max(50, "First name must not exceed 50 characters")
+            .regex(/^[A-Za-zÀ-ÿ\s'-]+$/, "First name contains invalid characters")
             .optional(),
 
         middleName: z
             .string()
             .trim()
+            .max(50, "Middle name must not exceed 50 characters")
+            .regex(/^[A-Za-zÀ-ÿ\s'-]*$/, "Middle name contains invalid characters")
             .optional(),
 
         lastName: z
             .string()
             .trim()
             .min(1, "Last name is required")
+            .max(50, "Last name must not exceed 50 characters")
+            .regex(/^[A-Za-zÀ-ÿ\s'-]+$/, "Last name contains invalid characters")
             .optional(),
 
         dateOfBirth: z
@@ -37,20 +43,20 @@ const updateMyProfileSchema = z
             .string()
             .regex(
                 /^[6-9]\d{9}$/,
-                "Invalid secondary phone number"
+                "Secondary phone must be a valid 10-digit Indian mobile number"
             )
             .optional(),
 
         address: z
             .object({
                 street: z.string().trim().optional(),
-                city: z.string().trim().optional(),
-                state: z.string().trim().optional(),
+                city: z.string().trim().max(100).optional(),
+                state: z.string().trim().max(100).optional(),
                 zipCode: z
                     .string()
                     .regex(
-                        /^\d{6}$/,
-                        "Invalid ZIP code"
+                        /^[1-9]\d{5}$/,
+                        "PIN code must contain 6 digits and cannot start with 0"
                     )
                     .optional(),
             })

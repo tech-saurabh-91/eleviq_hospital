@@ -1,7 +1,7 @@
-"use client"
-import { Home, Calendar, User, Shield, AreaChartIcon as ChartArea, HelpCircle, User2 } from "lucide-react"
-import Link from "next/link"
-import { usePathname } from "next/navigation"
+"use client";
+import { Home, Calendar, User, Shield, AreaChartIcon as ChartArea, HelpCircle, User2, FileText } from "lucide-react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 import {
   Sidebar,
   SidebarContent,
@@ -12,20 +12,21 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-} from "@/components/ui/sidebar"
+} from "@/components/ui/sidebar";
 
 const navigationItems = [
   { href: "/patient", label: "Home", icon: Home },
   { href: "/patient/appointments", label: "Appointments", icon: Calendar },
+  { href: "/patient/documents", label: "Documents", icon: FileText },
   { href: "/patient/family-member", label: "Family Members", icon: User },
   { href: "/patient/insurance", label: "Insurance", icon: Shield },
   { href: "/patient/patient-chart", label: "Patient Chart", icon: ChartArea },
   { href: "/patient/faqs", label: "FAQs", icon: HelpCircle },
   { href: "/patient/profile", label: "Profile", icon: User2 },
-]
+];
 
 export function PatientSidebar() {
-  const pathname = usePathname()
+  const pathname = usePathname();
 
   return (
     <Sidebar
@@ -38,8 +39,6 @@ export function PatientSidebar() {
         width: "var(--sidebar-width)",
       }}
     >
-    
-
       <SidebarContent>
         <SidebarGroup>
           <SidebarGroupLabel className="text-emerald-600">Patient Portal</SidebarGroupLabel>
@@ -66,8 +65,8 @@ export function PatientSidebar() {
       </SidebarContent>
 
       <SidebarFooter>
-        <div className="text-xs text-emerald-600/70 px-2 py-1">© 2025 OurPhoneMD</div>
+        <div className="text-xs text-emerald-600/70 px-2 py-1">© 2025 Eleviq Hospital</div>
       </SidebarFooter>
     </Sidebar>
-  )
+  );
 }
